@@ -16,26 +16,106 @@
 
 
 
-void SMoveAssetsWidget::Construct(const FArguments& InArgs)
-{
-	SearchBox = MakeShared<FPathSearch>();
-	ChildSlot
-	[
-		SNew(SVerticalBox)
-		+ SVerticalBox::Slot()
-		.AutoHeight()
+void FMoveAssetsWidget::MakeWidget()
+{ 
+	
+	 FSlateApplication::Get().AddWindow( 
+		SNew(SWindow)
+		.Title(FText::FromString("Move Assets"))
+		.ClientSize(FVector2D(550, 80))
+		.SupportsMinimize(false)
+		.SupportsMaximize(false)
 		[
-			SNew(SButton)
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			[ 
+				SNew(SVerticalBox) 
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.VAlign(VAlign_Center)
+				.Padding(15, 0, 0, 0)
+				[
+					SNew(SCheckBox)
+					.OnCheckStateChanged_Lambda([this](ECheckBoxState CheckState)
+					{
+						WidgetSwitcher->SetActiveWidgetIndex(CheckState == ECheckBoxState::Checked ? 1 : 0);
+					})
+				]
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.VAlign(VAlign_Center)
+				.Padding(10, 0, 5, 3)
+				[ 
+					SNew(STextBlock)
+					.Text(FText::FromString("Move to existing folder"))
+					.ColorAndOpacity(FSlateColor(FColor(169, 169, 169, 100)))
+				] 
+						
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(10, 0, 0, 0)
+				.VAlign(VAlign_Center)
+				[ 
+						SAssignNew(WidgetSwitcher, SWidgetSwitcher)
+
+							// Add assets to new folder at current path
+						+ SWidgetSwitcher::Slot()
+						[
+							SNew(SHorizontalBox)
+							+ SHorizontalBox::Slot()
+							.AutoWidth()
+							.Padding(0, 0, 15, 0)
+							.MinWidth(125)
+							[ 
+								SNew(SButton)
+								.Text(FText::FromString("Create Folder"))
+								.HAlign(HAlign_Center)
+								.VAlign(VAlign_Center)
+							]
+							+ SHorizontalBox::Slot()
+							.FillWidth(0.7f)
+							.VAlign(VAlign_Center)
+							.Padding(10, 0, 10, 0)
+							[
+								SNew(SEditableTextBox)
+							]
+						]
+					
+						// Fuzzy search for path to add assets to
+						+SWidgetSwitcher::Slot()
+						[ 
+							SNew(SHorizontalBox)
+							+ SHorizontalBox::Slot()
+							.AutoWidth()
+							.Padding(0, 0, 15, 0)
+							.MinWidth(125)
+							[ 
+								SNew(SButton)
+								.OnClicked_Lambda([this]()
+								{
+								})
+								.Text(FText::FromString("Move"))
+								.HAlign(HAlign_Center)
+								.VAlign(VAlign_Center)
+							]
+							+ SHorizontalBox::Slot()
+							.FillWidth(0.7f)
+							.VAlign(VAlign_Center)
+							.Padding(10, 0, 10, 0)
+							[
+								SAssignNew(SearchBox, SAssetSearchBox)
+								.OnTextCommitted_Lambda([this](FString Path) {})
+							]
+						] 
+				] 
+			]
 		]
-		+ SVerticalBox::Slot()
-		.FillHeight(3)
-		[
-			SearchBox->MakeSearchBar()
-		]
-	];
+			
+	);
 }
 
-bool SMoveAssetsWidget::MakeFolder(FString FolderPath)
+bool FMoveAssetsWidget::MakeFolder(FString FolderPath)
 {
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
 
@@ -48,7 +128,7 @@ bool SMoveAssetsWidget::MakeFolder(FString FolderPath)
 	return true;
 }
 
-bool SMoveAssetsWidget::UpdateRefrencers(FString& Path)
+bool FMoveAssetsWidget::UpdateRefrencers(FString& Path)
 {
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
 	FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
@@ -79,10 +159,8 @@ bool SMoveAssetsWidget::UpdateRefrencers(FString& Path)
 	AssetTools.FixupReferencers(Redirectors);
 	return true;
 }
-void SMoveAssetsWidget::MoveAssetsTo(TArray<FAssetData> SelectedAssets, FString Path)
-{
-	
-	
+void FMoveAssetsWidget::MoveAssetsTo(TArray<FAssetData> SelectedAssets, FString Path)
+{  
 	int Distance = LevenshteinDistance(Path, "/Game/Test/");
 	UE_LOG(LogTemp, Warning, TEXT("%d"), Distance);
 	TArray<UObject*> Assets;
@@ -91,16 +169,16 @@ void SMoveAssetsWidget::MoveAssetsTo(TArray<FAssetData> SelectedAssets, FString 
 		Assets.Add(AssetData.GetAsset());
 	}
 	AssetViewUtils::MoveAssets(Assets, Path);
-	UpdateRefrencers(Path);
-
+	UpdateRefrencers(Path); 
 }
 
-bool SMoveAssetsWidget::bPathExists(FString Path)
+bool FMoveAssetsWidget::bPathExists(FString Path)
 {
 	
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
 	return AssetRegistryModule.Get().PathExists(Path);
 }
+
 
 
 // problem: Need to find the closest matching string
@@ -110,7 +188,7 @@ bool SMoveAssetsWidget::bPathExists(FString Path)
  *  Given the set of paths we simply
  */
 
-int SMoveAssetsWidget::LevenshteinDistance(const FString String1, const FString String2)
+int FMoveAssetsWidget::LevenshteinDistance(const FString String1, const FString String2)
 {
 	// Declare and set matrix
 	TArray<TArray<int>> DistanceMatrix;
@@ -144,7 +222,7 @@ int SMoveAssetsWidget::LevenshteinDistance(const FString String1, const FString 
 }
 
 // find the lcs and then perform levenshtein distance
-void SMoveAssetsWidget::PathsOfSharingSuffix(const FString& Path)
+void FMoveAssetsWidget::PathsOfSharingSuffix(const FString& Path)
 {
 	FPathTree PathTree = FPathTree();
 	TSet<FName> OutPaths;

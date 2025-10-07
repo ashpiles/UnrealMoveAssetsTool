@@ -21,7 +21,5 @@ public:
  
 	TSharedRef<FExtender> MenuExtensionDelegate(const TArray<FAssetData>& SelectedAssets);
 	TArray<FAssetData> SelectedAssets;
-
-
-
+	TSharedPtr<FMoveAssetsWidget> MoveAssetsWidget;
 };
