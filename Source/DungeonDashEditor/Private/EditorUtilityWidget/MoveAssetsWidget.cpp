@@ -3,17 +3,13 @@
 
 #include "EditorUtilityWidget/MoveAssetsWidget.h"
 
-#include <Programs/UnrealBuildAccelerator/Core/Public/UbaBase.h>
 
 #include "AssetToolsModule.h"
 #include "AssetViewUtils.h"
-#include "ContentBrowserModule.h"
 #include "IAssetTools.h"
 #include "IContentBrowserSingleton.h"
 #include "SAssetSearchBox.h"
 #include "AssetRegistry/AssetRegistryModule.h"
-#include "AssetRegistry/PathTree.h"
-
 
 
 void FMoveAssetsWidget::MakeWidget()
@@ -69,6 +65,10 @@ void FMoveAssetsWidget::MakeWidget()
 							.MinWidth(125)
 							[ 
 								SNew(SButton)
+								.OnClicked_Lambda([this]
+								{
+									return FReply::Handled();
+								})
 								.Text(FText::FromString("Create Folder"))
 								.HAlign(HAlign_Center)
 								.VAlign(VAlign_Center)
@@ -92,9 +92,6 @@ void FMoveAssetsWidget::MakeWidget()
 							.MinWidth(125)
 							[ 
 								SNew(SButton)
-								.OnClicked_Lambda([this]()
-								{
-								})
 								.Text(FText::FromString("Move"))
 								.HAlign(HAlign_Center)
 								.VAlign(VAlign_Center)
@@ -105,7 +102,12 @@ void FMoveAssetsWidget::MakeWidget()
 							.Padding(10, 0, 10, 0)
 							[
 								SAssignNew(SearchBox, SAssetSearchBox)
-								.OnTextCommitted_Lambda([this](FString Path) {})
+								.OnTextChanged_Lambda([this] (const FText& Input)
+								{
+									for (auto String : FuzzySearch(Input.ToString(), 1, 0))
+										UE_LOG(LogTemp, Display, TEXT("%s"), *String)
+
+								})
 							]
 						] 
 				] 
@@ -161,8 +163,6 @@ bool FMoveAssetsWidget::UpdateRefrencers(FString& Path)
 }
 void FMoveAssetsWidget::MoveAssetsTo(TArray<FAssetData> SelectedAssets, FString Path)
 {  
-	int Distance = LevenshteinDistance(Path, "/Game/Test/");
-	UE_LOG(LogTemp, Warning, TEXT("%d"), Distance);
 	TArray<UObject*> Assets;
 	for (auto AssetData : SelectedAssets)
 	{
@@ -171,68 +171,59 @@ void FMoveAssetsWidget::MoveAssetsTo(TArray<FAssetData> SelectedAssets, FString 
 	AssetViewUtils::MoveAssets(Assets, Path);
 	UpdateRefrencers(Path); 
 }
-
-bool FMoveAssetsWidget::bPathExists(FString Path)
+  
+ 
+ 
+void FMoveAssetsWidget::AddStringToBucket(const FString& Input, TArray<TArray<FPathNode>>& Buckets)
 {
-	
-	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
-	return AssetRegistryModule.Get().PathExists(Path);
-}
 
-
-
-// problem: Need to find the closest matching string
-// subproblems:
-/*
- *  Find the longest matching suffix
- *  Given the set of paths we simply
- */
-
-int FMoveAssetsWidget::LevenshteinDistance(const FString String1, const FString String2)
-{
-	// Declare and set matrix
-	TArray<TArray<int>> DistanceMatrix;
-	TArray<int> MatrixRow;
-	MatrixRow.Init(0, String2.Len() + 1);
-	DistanceMatrix.Init(MatrixRow, String1.Len() + 1);
-
-	for (int i = 0; i < String1.Len(); i++)
-		DistanceMatrix[i][0] = i;
-
-	for (int j = 0; j < String2.Len(); j++)
-		DistanceMatrix[0][j] = j;
-
-
-
-	for (int j = 1; j < String2.Len(); j++)
+	FAssetRegistryModule& ARM = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry"); 
+ 
+	ARM.Get().EnumerateAllCachedPaths([&Input, &Buckets](FName Path) -> bool
 	{
-		for (int i = 1; i < String1.Len(); i++)
+		FString CurrentPath = Path.ToString(); 
+		FPathNode CurrentNode;
+		CurrentNode.Path = CurrentPath;
+		CurrentNode.SearchString = Input;
+
+		if (Buckets.Num() < CurrentNode.EditDistance())
 		{
-			int SubstitutionCost = (String1[i] == String2[j]) ? 0 : 1;
-
-			int Deletion = DistanceMatrix[i-1][j] + 1;
-			int Insertion = DistanceMatrix[i][j - 1] + 1;
-			int Substitution = DistanceMatrix[i-1][j-1] + SubstitutionCost;
-
-			DistanceMatrix[i][j] = FMath::Min3(Deletion, Insertion, Substitution);
+			Buckets.Reserve(CurrentNode.EditDistance() + 1);
 		}
-	}
-	return DistanceMatrix[String1.Len()][String2.Len()];
-
+		Buckets[CurrentNode.EditDistance()].Add(CurrentNode);
+		return true;
+	}); 
 }
 
-// find the lcs and then perform levenshtein distance
-void FMoveAssetsWidget::PathsOfSharingSuffix(const FString& Path)
+// we lazily sort buckets based on where the user is on the search bar view
+void FMoveAssetsWidget::SelectionSortFuzzySearchBucket(TArray<FPathNode>& Bucket)
 {
-	FPathTree PathTree = FPathTree();
-	TSet<FName> OutPaths;
+	for (int i = 0; i < Bucket.Num() - 1; i++)
+	{
+		int MinIndex = i;
+		for (int j = i+1; j < Bucket.Num(); j++)
+		{
+			if (Bucket[j].EditDistance() < Bucket[MinIndex].EditDistance())
+				MinIndex = j;
+		}
 
+		if (MinIndex != i)
+			Swap(Bucket[i], Bucket[MinIndex]); 
+	}
+}
 
-	// index paths
-	// Trie with whole words as nodes!!!!!!!
-	// You get a trie node by aproxximating input word via levensthein distance
-	// Nodes point to set
-	// the nodes are an element of SetA with the whole branch being the SetA
-
-	
+// we have to somehow account for the input changing mid-process
+TArray<FString> FMoveAssetsWidget::FuzzySearch(const FString& Input, int BatchSize, int StartIndex = 0)
+{
+	TArray<TArray<FPathNode>> PathBuckets;
+	AddStringToBucket(Input, PathBuckets);
+	TArray<FString> Results;
+// do some checks to see if batch size and start index are valid
+	for (int i = StartIndex; i < BatchSize; i++)
+	{ 
+		SelectionSortFuzzySearchBucket(PathBuckets[i]);
+		for (int j = 0; j < PathBuckets[i].Num(); j++)
+			Results.Add(PathBuckets[i][j].Path);
+	}
+	return Results;
 }

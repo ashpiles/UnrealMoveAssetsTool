@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "EditorUtilityWidget/MoveAssetsWidget.h"
-#include "EditorUtilityWidget/PathSearch.h"
 
 DECLARE_DELEGATE_OneParam(FFillSubmenuDelegate, FMenuBuilder&)
 

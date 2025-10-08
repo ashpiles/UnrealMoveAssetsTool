@@ -6,6 +6,30 @@
 
 
 class SAssetSearchBox;
+
+struct FPathNode
+{
+	FString Path;
+	FString SearchString;
+
+	int32 CachedEditDistance;
+
+	// its possible the compare call is expensive
+	int32 EditDistance() const
+	{
+		if (!Path.IsEmpty() && !SearchString.IsEmpty())
+			return SearchString.Compare(Path);
+		return 0;
+	}
+	int32 PathDistance() const
+	{
+		if (!Path.IsEmpty() && !SearchString.IsEmpty())
+			return FMath::Abs(Path.Len() - SearchString.Len());
+		return 0;
+	}
+};
+
+
 /**
  * 
  */
@@ -19,16 +43,18 @@ public:
 	bool UpdateRefrencers(FString& Path);
 	void MoveAssetsTo(TArray<FAssetData> SelectedAssets, FString Path);
 
-	bool bPathExists(FString Path);
 
 
 	TArray<FAssetData> InData; 
 
 private:
-	int LevenshteinDistance(const FString S1,const FString S2);
-	void PathsOfSharingSuffix(const FString& Path);
 
- 
+	static void AddStringToBucket(const FString& Input, TArray<TArray<FPathNode> >& Buckets);
+	static void SelectionSortFuzzySearchBucket(TArray<FPathNode>& Bucket);
+	static TArray<FString> FuzzySearch(const FString& Input, int BatchSize, int StartingIndex);
+
+
+	TArray<FPathNode> PathTrie;
 	TSharedPtr<SAssetSearchBox> SearchBox;
 	TSharedPtr<SWidgetSwitcher> WidgetSwitcher;
 };
