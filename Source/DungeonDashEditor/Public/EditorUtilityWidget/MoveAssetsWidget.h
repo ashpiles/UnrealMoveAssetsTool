@@ -6,29 +6,7 @@
 
 
 class SAssetSearchBox;
-
-struct FPathNode
-{
-	FString Path;
-	FString SearchString;
-
-	int32 CachedEditDistance;
-
-	// its possible the compare call is expensive
-	int32 EditDistance() const
-	{
-		if (!Path.IsEmpty() && !SearchString.IsEmpty())
-			return SearchString.Compare(Path);
-		return 0;
-	}
-	int32 PathDistance() const
-	{
-		if (!Path.IsEmpty() && !SearchString.IsEmpty())
-			return FMath::Abs(Path.Len() - SearchString.Len());
-		return 0;
-	}
-};
-
+ 
 
 /**
  * 
@@ -49,12 +27,13 @@ public:
 
 private:
 
-	static void AddStringToBucket(const FString& Input, TArray<TArray<FPathNode> >& Buckets);
-	static void SelectionSortFuzzySearchBucket(TArray<FPathNode>& Bucket);
-	static TArray<FString> FuzzySearch(const FString& Input, int BatchSize, int StartingIndex);
+	static bool SegmentPathHeirachy(const FString& Input, TArray<FString>& OutArray);
+	void IndexPathStrings();
+	void FuzzyFind(const FString& Input, int FuzzyRange, TArray<FString>& OutArray);
+	
 
-
-	TArray<FPathNode> PathTrie;
+	TArray<FString> PathStrings;
+	TMap<FString, TArray<int>> NGramIndex;
 	TSharedPtr<SAssetSearchBox> SearchBox;
 	TSharedPtr<SWidgetSwitcher> WidgetSwitcher;
 };

@@ -13,7 +13,8 @@
 
 
 void FMoveAssetsWidget::MakeWidget()
-{ 
+{
+	IndexPathStrings();
 	
 	 FSlateApplication::Get().AddWindow( 
 		SNew(SWindow)
@@ -104,7 +105,9 @@ void FMoveAssetsWidget::MakeWidget()
 								SAssignNew(SearchBox, SAssetSearchBox)
 								.OnTextChanged_Lambda([this] (const FText& Input)
 								{
-									for (auto String : FuzzySearch(Input.ToString(), 1, 0))
+									TArray<FString> SearchResults;
+									FuzzyFind(Input.ToString(), 3, SearchResults);
+									for (auto String : SearchResults)
 										UE_LOG(LogTemp, Display, TEXT("%s"), *String)
 
 								})
@@ -172,58 +175,53 @@ void FMoveAssetsWidget::MoveAssetsTo(TArray<FAssetData> SelectedAssets, FString 
 	UpdateRefrencers(Path); 
 }
   
- 
- 
-void FMoveAssetsWidget::AddStringToBucket(const FString& Input, TArray<TArray<FPathNode>>& Buckets)
+
+  
+bool FMoveAssetsWidget::SegmentPathHeirachy(const FString& Input, TArray<FString>& OutArray)
 {
-
-	FAssetRegistryModule& ARM = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry"); 
- 
-	ARM.Get().EnumerateAllCachedPaths([&Input, &Buckets](FName Path) -> bool
+	for (int i = 0; i < Input.Len(); i++)
 	{
-		FString CurrentPath = Path.ToString(); 
-		FPathNode CurrentNode;
-		CurrentNode.Path = CurrentPath;
-		CurrentNode.SearchString = Input;
-
-		if (Buckets.Num() < CurrentNode.EditDistance())
-		{
-			Buckets.Reserve(CurrentNode.EditDistance() + 1);
-		}
-		Buckets[CurrentNode.EditDistance()].Add(CurrentNode);
-		return true;
-	}); 
+		if (Input[i] == '/' || OutArray.IsEmpty())
+			OutArray.Add(&Input[i]);
+		else
+			OutArray.Last().Append(&Input[i]);
+	}
+	return true;
 }
 
-// we lazily sort buckets based on where the user is on the search bar view
-void FMoveAssetsWidget::SelectionSortFuzzySearchBucket(TArray<FPathNode>& Bucket)
+void FMoveAssetsWidget::IndexPathStrings()
 {
-	for (int i = 0; i < Bucket.Num() - 1; i++)
+	FAssetRegistryModule& ARM = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+	ARM.Get().GetAllCachedPaths(PathStrings);
+	for (int i = 0; i < PathStrings.Num(); i++)
 	{
-		int MinIndex = i;
-		for (int j = i+1; j < Bucket.Num(); j++)
+		TArray<FString> OutArray;
+		if (SegmentPathHeirachy(PathStrings[i], OutArray))
 		{
-			if (Bucket[j].EditDistance() < Bucket[MinIndex].EditDistance())
-				MinIndex = j;
+			for (int j = 0; j < OutArray.Num(); j++)
+			{
+				NGramIndex.FindOrAdd(OutArray[j]).Add(i);
+			}
 		}
-
-		if (MinIndex != i)
-			Swap(Bucket[i], Bucket[MinIndex]); 
 	}
 }
 
-// we have to somehow account for the input changing mid-process
-TArray<FString> FMoveAssetsWidget::FuzzySearch(const FString& Input, int BatchSize, int StartIndex = 0)
+void FMoveAssetsWidget::FuzzyFind(const FString& Input, int FuzzyRange, TArray<FString>& OutArray)
 {
-	TArray<TArray<FPathNode>> PathBuckets;
-	AddStringToBucket(Input, PathBuckets);
-	TArray<FString> Results;
-// do some checks to see if batch size and start index are valid
-	for (int i = StartIndex; i < BatchSize; i++)
-	{ 
-		SelectionSortFuzzySearchBucket(PathBuckets[i]);
-		for (int j = 0; j < PathBuckets[i].Num(); j++)
-			Results.Add(PathBuckets[i][j].Path);
+	TArray<FString> SegmentedInput;
+	TSet<int> PathIndecies;
+	SegmentPathHeirachy(Input, SegmentedInput);
+	for (int i = 0; i < SegmentedInput.Num(); i++)
+	{
+		for (const auto& Element : NGramIndex)
+		{
+			if (FMath::Abs(Element.Key.Compare(SegmentedInput[i])) <= FuzzyRange)
+				PathIndecies.Append(NGramIndex[Element.Key]); 
+		}
 	}
-	return Results;
+
+	for (int PathIndex : PathIndecies)
+	{
+		OutArray.Add(PathStrings[PathIndex]);
+	}
 }
