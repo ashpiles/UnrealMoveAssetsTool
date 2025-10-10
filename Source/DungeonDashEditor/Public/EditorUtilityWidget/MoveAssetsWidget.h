@@ -20,7 +20,7 @@ public:
 	bool MakeFolder(FString FolderPath);
 	bool UpdateRefrencers(FString& Path);
 	void MoveAssetsTo(TArray<FAssetData> SelectedAssets, FString Path);
-
+	static int LevenshteinDistance(FString String1, FString String2);
 
 
 	TArray<FAssetData> InData; 
