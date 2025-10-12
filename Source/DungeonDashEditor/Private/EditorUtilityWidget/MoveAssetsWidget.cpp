@@ -5,34 +5,113 @@
 
 #include <Programs/UnrealBuildAccelerator/Core/Public/UbaBase.h>
 
+#include "AssetSelection.h"
 #include "AssetToolsModule.h"
 #include "AssetViewUtils.h"
 #include "ContentBrowserModule.h"
 #include "IAssetTools.h"
 #include "IContentBrowserSingleton.h"
-#include "SAssetSearchBox.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetRegistry/PathTree.h"
 
 
 
-void SMoveAssetsWidget::Construct(const FArguments& InArgs)
+void FMoveAssetsWidget::MakeWidget()
 {
-	SearchBox = MakeShared<FPathSearch>();
-	ChildSlot
-	[
-		SNew(SVerticalBox)
-		+ SVerticalBox::Slot()
-		.AutoHeight()
-		[
-			SNew(SButton)
-		]
-		+ SVerticalBox::Slot()
-		.FillHeight(3)
-		[
-			SearchBox->MakeSearchBar()
-		]
-	];
+
+	TSharedPtr<SWindow> MainEditorWindow = FGlobalTabmanager::Get()->GetRootWindow();
+    TSharedRef<SWindow> WidgetWindow = FSlateApplication::Get().AddWindow(
+        SNew(SWindow)
+        .Title(FText::FromString("Move Assets"))
+        .ClientSize(FVector2D(450, 150))
+        .SupportsMinimize(false)
+        .SupportsMaximize(false)
+        [
+            SNew(SVerticalBox)
+
+            + SVerticalBox::Slot()
+            .AutoHeight()
+            .Padding(10, 0, 5, 3)
+            [
+                SNew(SHorizontalBox)
+                + SHorizontalBox::Slot()
+                .FillWidth(.3f)
+                .VAlign(VAlign_Center)
+                .Padding(20)
+                [
+                    SNew(SBox)
+                    .HeightOverride(35.f)  // Force the button height
+                    [
+                        SNew(SButton)
+                        .Text(FText::FromString("Create Folder"))
+                        .VAlign(VAlign_Center)
+	                    .HAlign(HAlign_Center)
+                        .OnClicked_Raw(this, &FMoveAssetsWidget::OnCreateFolderButtonClicked)
+                    ]
+                ]
+                + SHorizontalBox::Slot()
+                .FillWidth(.7f)
+                .VAlign(VAlign_Center)
+                [
+                    SAssignNew(TextBox, SEditableTextBox)
+                    .Text(FText::FromString("MyNewFolder"))
+                ]
+            ]
+
+            + SVerticalBox::Slot()
+            .AutoHeight()
+            .Padding(0, 5)
+            [
+                SNew(SHorizontalBox)
+                + SHorizontalBox::Slot()
+                .FillWidth(.3f)
+                .VAlign(VAlign_Center)
+                .Padding(20)
+                [
+                    SNew(SBox)
+                    .HeightOverride(35.f)
+                    [
+                        SNew(SButton)
+                        .HAlign(HAlign_Center)
+                        .VAlign(VAlign_Center)
+                        .Text(FText::FromString("Move to Selected Folder"))
+                        .OnClicked_Raw(this, &FMoveAssetsWidget::OnMoveToSelectedFolderClicked)
+                    ]
+                ]
+                + SHorizontalBox::Slot()
+                .FillWidth(.3f)
+                .VAlign(VAlign_Center)
+                .Padding(20)
+                [
+                    SNew(SBox)
+                    .HeightOverride(35.f)
+                    [
+                        SNew(SButton)
+                        .HAlign(HAlign_Center)
+                        .VAlign(VAlign_Center)
+                        .Text(FText::FromString("Sort Assets by Type"))
+                        .OnClicked_Raw(this, &FMoveAssetsWidget::OnSortAssetsButtonClicked)
+                    ]
+                ]
+            ]
+        ]
+    );
+
+	FSlateApplication::Get().AddWindowAsNativeChild(WidgetWindow, MainEditorWindow.ToSharedRef());
+}
+
+void FMoveAssetsWidget::MakeWidget2()
+{
+	FSlateApplication::Get().AddWindow( 
+	   SNew(SWindow)
+	   .Title(FText::FromString("Move Assets"))
+	   .ClientSize(FVector2D(550, 230))
+	   .SupportsMinimize(false)
+	   .SupportsMaximize(false)
+	   [
+		   SNew(SVerticalBox)
+	   ]
+	   );
 }
 
 bool SMoveAssetsWidget::MakeFolder(FString FolderPath)
@@ -79,82 +158,86 @@ bool SMoveAssetsWidget::UpdateRefrencers(FString& Path)
 	AssetTools.FixupReferencers(Redirectors);
 	return true;
 }
-void SMoveAssetsWidget::MoveAssetsTo(TArray<FAssetData> SelectedAssets, FString Path)
+
+void FMoveAssetsWidget::MoveAssetsTo(TArray<FAssetData>& SelectedAssets, FString Path)
 {
-	
-	
-	int Distance = LevenshteinDistance(Path, "/Game/Test/");
-	UE_LOG(LogTemp, Warning, TEXT("%d"), Distance);
+	Path.RemoveFromStart(TEXT("/All"));
 	TArray<UObject*> Assets;
 	for (auto AssetData : SelectedAssets)
 	{
-		Assets.Add(AssetData.GetAsset());
+		if (UObject* Asset = AssetData.GetAsset())
+			Assets.Add(Asset);
 	}
 	AssetViewUtils::MoveAssets(Assets, Path);
 	UpdateRefrencers(Path);
 
 }
 
-bool SMoveAssetsWidget::bPathExists(FString Path)
+ 
+FReply FMoveAssetsWidget::OnCreateFolderButtonClicked() const
 {
-	
-	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
-	return AssetRegistryModule.Get().PathExists(Path);
-}
-
-
-// problem: Need to find the closest matching string
-// subproblems:
-/*
- *  Find the longest matching suffix
- *  Given the set of paths we simply
- */
-
-int SMoveAssetsWidget::LevenshteinDistance(const FString String1, const FString String2)
-{
-	// Declare and set matrix
-	TArray<TArray<int>> DistanceMatrix;
-	TArray<int> MatrixRow;
-	MatrixRow.Init(0, String2.Len() + 1);
-	DistanceMatrix.Init(MatrixRow, String1.Len() + 1);
-
-	for (int i = 0; i < String1.Len(); i++)
-		DistanceMatrix[i][0] = i;
-
-	for (int j = 0; j < String2.Len(); j++)
-		DistanceMatrix[0][j] = j;
-
-
-
-	for (int j = 1; j < String2.Len(); j++)
-	{
-		for (int i = 1; i < String1.Len(); i++)
-		{
-			int SubstitutionCost = (String1[i] == String2[j]) ? 0 : 1;
-
-			int Deletion = DistanceMatrix[i-1][j] + 1;
-			int Insertion = DistanceMatrix[i][j - 1] + 1;
-			int Substitution = DistanceMatrix[i-1][j-1] + SubstitutionCost;
-
-			DistanceMatrix[i][j] = FMath::Min3(Deletion, Insertion, Substitution);
-		}
+	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+	FString DesiredPath = ContentBrowserModule.Get().GetCurrentPath().GetVirtualPathString() + "/" + TextBox->GetText().ToString();
+	DesiredPath.RemoveFromStart(TEXT("/All"));
+	TArray<FAssetData> SelectedAssets;
+	AssetSelectionUtils::GetSelectedAssets(SelectedAssets);
+	if (MakeFolder(DesiredPath))
+	{ 
+		MoveAssetsTo(SelectedAssets, DesiredPath);
+		UpdateRefrencers(DesiredPath);
 	}
-	return DistanceMatrix[String1.Len()][String2.Len()];
-
-}
-
-// find the lcs and then perform levenshtein distance
-void SMoveAssetsWidget::PathsOfSharingSuffix(const FString& Path)
-{
-	FPathTree PathTree = FPathTree();
-	TSet<FName> OutPaths;
-
-
-	// index paths
-	// Trie with whole words as nodes!!!!!!!
-	// You get a trie node by aproxximating input word via levensthein distance
-	// Nodes point to set
-	// the nodes are an element of SetA with the whole branch being the SetA
-
 	
+	return FReply::Handled();
 }
+
+FReply FMoveAssetsWidget::OnSortAssetsButtonClicked() const
+{
+	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+	FString CurrentPath = ContentBrowserModule.Get().GetCurrentPath().GetVirtualPathString();
+	TArray<FAssetData> SelectedAssets;
+	AssetSelectionUtils::GetSelectedAssets(SelectedAssets); 
+	TSet<FName> AssetTypes;
+
+	for (FAssetData& Asset : SelectedAssets )
+	{
+		FName AssetName = Asset.AssetClassPath.GetAssetName();
+		FString DestinationPath = CurrentPath + "/" + AssetName.ToString() + "s";
+		DestinationPath.RemoveFromStart(TEXT("/All"));
+		TArray<FAssetData> FilteredAsset;
+		FilteredAsset.Add(Asset);
+		if (!AssetTypes.Contains(AssetName))
+		{
+			AssetTypes.Add(AssetName);
+			MakeFolder(DestinationPath);
+		}
+		
+		MoveAssetsTo(FilteredAsset, DestinationPath);
+		
+		UE_LOG(LogTemp, Display, TEXT("Asset: %s"), *AssetName.ToString()); 
+	}
+
+
+	UpdateRefrencers(CurrentPath);
+	
+	return FReply::Handled();
+}
+
+FReply FMoveAssetsWidget::OnMoveToSelectedFolderClicked() const
+{
+	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+	
+	TArray<FString> SelectedPaths;
+	TArray<FAssetData> CachedAssets;
+
+	AssetSelectionUtils::GetSelectedAssets(CachedAssets); 
+	FString CurrentPath = ContentBrowserModule.Get().GetCurrentPath().GetVirtualPathString();
+	ContentBrowserModule.Get().GetSelectedFolders(SelectedPaths);
+
+	if (SelectedPaths.Num() > 0)
+	{ 
+		MoveAssetsTo(CachedAssets, SelectedPaths.Last());
+		UpdateRefrencers(CurrentPath);
+	}
+		
+	return FReply::Handled(); 
+} 

@@ -10,17 +10,10 @@ class SAssetSearchBox;
 /**
  * 
  */
-class DUNGEONDASHEDITOR_API SMoveAssetsWidget : public SCompoundWidget
+class DUNGEONDASHEDITOR_API FMoveAssetsWidget : public SCompoundWidget
 {
 public:
-	SLATE_BEGIN_ARGS(SMoveAssetsWidget)
-		: _LabelText(FText::GetEmpty())
-		{}
-		SLATE_ARGUMENT(FText, LabelText)
-	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs);
-	
 	bool MakeFolder(FString FolderPath);
 	bool UpdateRefrencers(FString& Path);
 	void MoveAssetsTo(TArray<FAssetData> SelectedAssets, FString Path);
@@ -32,8 +25,23 @@ public:
 	TArray<FAssetData> InData; 
 
 private:
-	int LevenshteinDistance(const FString S1,const FString S2);
-	void PathsOfSharingSuffix(const FString& Path);
- 
-	TSharedPtr<FPathSearch> SearchBox;
+
+	void MakeWidget();
+	void MakeWidget2();
+	
+
+protected:
+	static bool MakeFolder(FString NewPath);
+	static bool UpdateRefrencers(FString& Path);
+	static void MoveAssetsTo(TArray<FAssetData>& SelectedAssets, FString Path);
+
+private:
+	FReply OnCreateFolderButtonClicked() const;
+	FReply OnSortAssetsButtonClicked() const;
+	FReply OnMoveToSelectedFolderClicked() const;
+
+
+
+	TArray<FString> PathStrings;
+	TSharedPtr<SEditableTextBox> TextBox;
 };
