@@ -10,22 +10,9 @@ class SAssetSearchBox;
 /**
  * 
  */
-class DUNGEONDASHEDITOR_API FMoveAssetsWidget : public SCompoundWidget
+class DUNGEONDASHEDITOR_API FMoveAssetsWidget : public TSharedFromThis<FMoveAssetsWidget>
 {
-public:
-
-	bool MakeFolder(FString FolderPath);
-	bool UpdateRefrencers(FString& Path);
-	void MoveAssetsTo(TArray<FAssetData> SelectedAssets, FString Path);
-
-	bool bPathExists(FString Path);
- 
-
-	// this does not update when you select a new set of items
-	TArray<FAssetData> InData; 
-
-private:
-
+public: 
 	void MakeWidget();
 	void MakeWidget2();
 	
@@ -40,7 +27,7 @@ private:
 	FReply OnSortAssetsButtonClicked() const;
 	FReply OnMoveToSelectedFolderClicked() const;
 
-
+   
 
 	TArray<FString> PathStrings;
 	TSharedPtr<SEditableTextBox> TextBox;

@@ -17,8 +17,7 @@
 
 
 void FMoveAssetsWidget::MakeWidget()
-{
-
+{ 
 	TSharedPtr<SWindow> MainEditorWindow = FGlobalTabmanager::Get()->GetRootWindow();
     TSharedRef<SWindow> WidgetWindow = FSlateApplication::Get().AddWindow(
         SNew(SWindow)
@@ -98,6 +97,7 @@ void FMoveAssetsWidget::MakeWidget()
     );
 
 	FSlateApplication::Get().AddWindowAsNativeChild(WidgetWindow, MainEditorWindow.ToSharedRef());
+
 }
 
 void FMoveAssetsWidget::MakeWidget2()
@@ -114,20 +114,20 @@ void FMoveAssetsWidget::MakeWidget2()
 	   );
 }
 
-bool SMoveAssetsWidget::MakeFolder(FString FolderPath)
+bool FMoveAssetsWidget::MakeFolder(FString NewPath)
 {
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
 
-	if (!AssetRegistryModule.Get().AddPath(FolderPath))
+	if (!AssetRegistryModule.Get().AddPath(NewPath))
 	{ 
-		UE_LOG(LogTemp, Error, TEXT("Create Folder Failed - Failed to Add Path. '%s'"), *FolderPath);
+		UE_LOG(LogTemp, Error, TEXT("Create Folder Failed - Failed to Add Path. '%s'"), *NewPath);
 		return false;
 	}
 	
 	return true;
 }
 
-bool SMoveAssetsWidget::UpdateRefrencers(FString& Path)
+bool FMoveAssetsWidget::UpdateRefrencers(FString& Path)
 {
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
 	FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
@@ -216,28 +216,8 @@ FReply FMoveAssetsWidget::OnSortAssetsButtonClicked() const
 		UE_LOG(LogTemp, Display, TEXT("Asset: %s"), *AssetName.ToString()); 
 	}
 
-
-	UpdateRefrencers(CurrentPath);
-	
 	return FReply::Handled();
+
 }
+ 
 
-FReply FMoveAssetsWidget::OnMoveToSelectedFolderClicked() const
-{
-	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
-	
-	TArray<FString> SelectedPaths;
-	TArray<FAssetData> CachedAssets;
-
-	AssetSelectionUtils::GetSelectedAssets(CachedAssets); 
-	FString CurrentPath = ContentBrowserModule.Get().GetCurrentPath().GetVirtualPathString();
-	ContentBrowserModule.Get().GetSelectedFolders(SelectedPaths);
-
-	if (SelectedPaths.Num() > 0)
-	{ 
-		MoveAssetsTo(CachedAssets, SelectedPaths.Last());
-		UpdateRefrencers(CurrentPath);
-	}
-		
-	return FReply::Handled(); 
-} 
