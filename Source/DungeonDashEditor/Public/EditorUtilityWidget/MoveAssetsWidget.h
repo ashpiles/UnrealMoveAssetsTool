@@ -13,13 +13,16 @@ class SAssetSearchBox;
 class DUNGEONDASHEDITOR_API FMoveAssetsWidget : public TSharedFromThis<FMoveAssetsWidget>
 {
 public: 
-	void MakeWidget(); 
+	void MakeWidget();
+	void SetCachedSelectedAssets(const TArray<FAssetData>& SelectedAssets)
+	{
+		CachedSelectedAssets = SelectedAssets;
+	}
 
 protected:
 	static bool MakeFolder(FString NewPath);
 	static bool UpdateRefrencers(FString& Path);
-	static bool MoveAssetsTo(const TArray<FAssetData>& SelectedAssets, FString Path);
-	static void EndOfOperationPopUp(bool bIsSuccess, const FString& Message);
+	static void MoveAssetsTo(const TArray<FAssetData>& SelectedAssets, FString Path);
 
 private:
 	FReply OnCreateFolderButtonClicked() const;

@@ -13,7 +13,7 @@
 #define LOCTEXT_NAMESPACE "DungeonDashEditor"
 
 
-FContentBrowserMenuExtension::FContentBrowserMenuExtension(): SelectedAssets()
+FContentBrowserMenuExtension::FContentBrowserMenuExtension()
 {
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
 	TArray<FContentBrowserMenuExtender_SelectedAssets>& MenuExtenderDelegates = ContentBrowserModule. GetAllAssetViewContextMenuExtenders();
@@ -21,49 +21,6 @@ FContentBrowserMenuExtension::FContentBrowserMenuExtension(): SelectedAssets()
 	MoveAssetsWidget = MakeShared<FMoveAssetsWidget>();
 }
 
-
-void FContentBrowserMenuExtension::AddWidgetEntriesFromEditor(FMenuBuilder& MenuBuilder)
-{
-//	const UEditorUtilityMenuSettings* WidgetSettings = GetDefault<UEditorUtilityMenuSettings>();
-//		MenuBuilder.AddSubMenu(
-//			WidgetSettings->Category,
-//			WidgetSettings->CategoryToolTip,
-//			FNewMenuDelegate::CreateLambda([WidgetSettings, this](FMenuBuilder& MenuBuilder)
-//			{
-//				for (const FWidgetEntry& WidgetEntry : WidgetSettings->EditorUtilityWidgets)
-//				{
-//					
-//					UObject* LoadedFunctionality = WidgetEntry.MenuEntryFunctionalityPath.TryLoad();
-//					if (!LoadedFunctionality)
-//					{
-//						UE_LOG(LogTemp, Warning, TEXT("FSubMenuData Construction - Failed to load Menu Entry Functionality"));
-//					}
-//
-//					// need a way to cast this to the correct obj
-//					UEditorUtilityWidgetBlueprint* EditorUtilityWidget = Cast<UEditorUtilityWidgetBlueprint>(LoadedFunctionality);
-//					if (!EditorUtilityWidget)
-//					{ 
-//						UE_LOG(LogTemp, Warning, TEXT("FSubMenuData Construction - Failed to convert Menu Entry Functionality"));
-//					}
-//
-//					// Execute or spawn obj
-//					const FUIAction CreateWidget (FExecuteAction::CreateLambda([EditorUtilityWidget, this]()
-//					{
-//						if (UEditorUtilitySubsystem* EditorUtilitySubsystem = GEditor->GetEditorSubsystem<UEditorUtilitySubsystem>())
-//						{
-//							EditorUtilitySubsystem->SpawnAndRegisterTab(EditorUtilityWidget);
-//							if (UMoveAssetsWidget* MoveAssetsWidget = Cast<UMoveAssetsWidget>(EditorUtilityWidget->GetCreatedWidget()))
-//								MoveAssetsWidget->InData = SelectedAssets;
-//							
-//						}
-// 
-//					}));
-//					MenuBuilder.AddMenuEntry(WidgetEntry.EntryLabel, WidgetEntry.EntryToolTip, FSlateIcon(), CreateWidget);
-//				}
-//			}
-//		)
-//	);
-}
 
 void FContentBrowserMenuExtension::AddWidgetEntries(FMenuBuilder& MenuBuilder)
 {
@@ -79,7 +36,7 @@ void FContentBrowserMenuExtension::AddWidgetEntries(FMenuBuilder& MenuBuilder)
 TSharedRef<FExtender> FContentBrowserMenuExtension::MenuExtensionDelegate(const TArray<FAssetData>& Assets)
 { 
 	TSharedPtr<FExtender> MenuExtender = MakeShareable(new FExtender());
-	SelectedAssets = Assets;
+	MoveAssetsWidget->SetCachedSelectedAssets(Assets);
 
 	MenuExtender->AddMenuExtension(
 		"CommonAssetActions",

@@ -3,7 +3,6 @@
 
 #include "EditorUtilityWidget/MoveAssetsWidget.h"
 
-#include <Programs/UnrealBuildAccelerator/Core/Public/UbaBase.h>
 
 #include "AssetSelection.h"
 #include "AssetToolsModule.h"
@@ -12,7 +11,6 @@
 #include "IAssetTools.h"
 #include "IContentBrowserSingleton.h"
 #include "AssetRegistry/AssetRegistryModule.h"
-#include "AssetRegistry/PathTree.h"
 
 
 
@@ -25,7 +23,7 @@ void FMoveAssetsWidget::MakeWidget()
 	TSharedPtr<SWindow> MainEditorWindow = FGlobalTabmanager::Get()->GetRootWindow();
     TSharedRef<SWindow> WidgetWindow = SNew(SWindow)
         .Title(FText::FromString("Move Assets"))
-        .ClientSize(FVector2D(760, 240))
+        .ClientSize(FVector2D(760, 245))
         .SupportsMinimize(false)
         .SupportsMaximize(false)
         [
@@ -151,7 +149,7 @@ bool FMoveAssetsWidget::MakeFolder(FString NewPath)
 
 	if (!AssetRegistryModule.Get().AddPath(NewPath))
 	{ 
-		UE_LOG(LogTemp, Error, TEXT("Create Folder Failed - Failed to Add Path. '%s'"), *NewPath);
+		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Failed to make path at " + NewPath)) ;
 		return false;
 	}
 	
@@ -190,7 +188,7 @@ bool FMoveAssetsWidget::UpdateRefrencers(FString& Path)
 	return true;
 }
 
-bool FMoveAssetsWidget::MoveAssetsTo(const TArray<FAssetData>& SelectedAssets, FString Path)
+void FMoveAssetsWidget::MoveAssetsTo(const TArray<FAssetData>& SelectedAssets, FString Path)
 {
 	Path.RemoveFromStart(TEXT("/All"));
 	TArray<UObject*> Assets;
@@ -200,13 +198,7 @@ bool FMoveAssetsWidget::MoveAssetsTo(const TArray<FAssetData>& SelectedAssets, F
 			Assets.Add(Asset);
 	}
 	AssetViewUtils::MoveAssets(Assets, Path);
-	return UpdateRefrencers(Path); 
-}
-
-void FMoveAssetsWidget::EndOfOperationPopUp(bool bIsSuccess, const FString& Message)
-{
-	const FText Title = bIsSuccess? FText::FromString("Successful Move Asset Operation") : FText::FromString("Failed Move Asset Operation");
-	FMessageDialog::Debugf(FText::FromString(Message), Title);
+	UpdateRefrencers(Path);
 }
 
 
@@ -217,10 +209,9 @@ FReply FMoveAssetsWidget::OnCreateFolderButtonClicked() const
 	// maybe this can pop up a new window to name the folder?
 	DesiredPath.RemoveFromStart(TEXT("/All"));
 	if (MakeFolder(DesiredPath))
-	{ 
 		MoveAssetsTo(CachedSelectedAssets, DesiredPath);
-		UpdateRefrencers(DesiredPath);
-	}
+	
+	FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Moved " + FString::FromInt(CachedSelectedAssets.Num()) + " assets to " + DesiredPath)) ;
 	
 	return FReply::Handled();
 }
@@ -245,8 +236,8 @@ FReply FMoveAssetsWidget::OnSortAssetsButtonClicked() const
 		
 		MoveAssetsTo(FilteredAsset, DestinationPath);
 		
-		UE_LOG(LogTemp, Display, TEXT("Asset: %s"), *AssetName.ToString()); 
 	}
+	FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Sorted " + FString::FromInt(CachedSelectedAssets.Num()) + " assets to " + FString::FromInt(AssetTypes.Num()) + " unique folders at " + CurrentPath)) ;
 
 	return FReply::Handled();
 
@@ -256,6 +247,8 @@ FReply FMoveAssetsWidget::OnMoveToSelectedFolderClicked() const
 {
 	FString CurrentPath = DestinationPathTextBox->GetText().ToString();
 	MoveAssetsTo(CachedSelectedAssets, CurrentPath);
+	
+	FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Moved " + FString::FromInt(CachedSelectedAssets.Num()) + " assets to " + CurrentPath));
 	return FReply::Handled();
 }
 

@@ -15,10 +15,8 @@ class DUNGEONDASHEDITOR_API FContentBrowserMenuExtension : public TSharedFromThi
 {
 public:
 	FContentBrowserMenuExtension();
-	void AddWidgetEntriesFromEditor(FMenuBuilder& MenuBuilder);
 	void AddWidgetEntries(FMenuBuilder& MenuBuilder);
  
 	TSharedRef<FExtender> MenuExtensionDelegate(const TArray<FAssetData>& SelectedAssets);
-	TArray<FAssetData> SelectedAssets;
 	TSharedPtr<FMoveAssetsWidget> MoveAssetsWidget;
 };
