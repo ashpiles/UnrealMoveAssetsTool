@@ -17,103 +17,134 @@
 
 
 void FMoveAssetsWidget::MakeWidget()
-{ 
+{
+	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+	FString DestinationPathTextBoxString = ContentBrowserModule.Get().GetCurrentPath().GetVirtualPathString();
+	DestinationPathTextBoxString.RemoveFromStart("/All");
+	
 	TSharedPtr<SWindow> MainEditorWindow = FGlobalTabmanager::Get()->GetRootWindow();
-    TSharedRef<SWindow> WidgetWindow = FSlateApplication::Get().AddWindow(
-        SNew(SWindow)
+    TSharedRef<SWindow> WidgetWindow = SNew(SWindow)
         .Title(FText::FromString("Move Assets"))
-        .ClientSize(FVector2D(450, 150))
+        .ClientSize(FVector2D(760, 240))
         .SupportsMinimize(false)
         .SupportsMaximize(false)
         [
-            SNew(SVerticalBox)
+            SNew(SHorizontalBox)
 
-            + SVerticalBox::Slot()
-            .AutoHeight()
-            .Padding(10, 0, 5, 3)
+            + SHorizontalBox::Slot()
+	        .FillWidth(.5f)
             [
-                SNew(SHorizontalBox)
-                + SHorizontalBox::Slot()
-                .FillWidth(.3f)
-                .VAlign(VAlign_Center)
-                .Padding(20)
+                SNew(SVerticalBox)
+            	+ SVerticalBox::Slot()
+				  .AutoHeight()
+				  .VAlign(VAlign_Bottom) 
+				  .Padding(20, 80, 20, 20)
+				  [
+					  SNew(SBox)
+					  .HeightOverride(35.f)
+					  .WidthOverride(50.f)
+					  [
+						  SNew(SButton)
+						  .Text(FText::FromString("Select Path to Move Assets To"))
+						  .VAlign(VAlign_Center)
+						  .HAlign(HAlign_Center)
+						  .OnClicked_Raw(this, &FMoveAssetsWidget::OnChangedDestinationPath)
+					  ]
+				  ]
+                + SVerticalBox::Slot()
+	            .AutoHeight()
+                .VAlign(VAlign_Bottom) 
+                .Padding(20, 0, 20, 20)
                 [
                     SNew(SBox)
-                    .HeightOverride(35.f)  // Force the button height
+                    .HeightOverride(35.f)
+				    .WidthOverride(50.f)
                     [
                         SNew(SButton)
-                        .Text(FText::FromString("Create Folder"))
+                        .Text(FText::FromString("Select Assets to Move"))
                         .VAlign(VAlign_Center)
 	                    .HAlign(HAlign_Center)
+                        .OnClicked_Lambda([&]
+                        {
+                        	return OnCacheSelectedAssets();
+                        })
+                    ]
+                ]
+                + SVerticalBox::Slot()
+	            .AutoHeight()
+                .VAlign(VAlign_Bottom) 
+	            .Padding(20, 0, 10, 20)
+                [
+                    SAssignNew(SelectedAssetsNumTextBox, STextBlock)
+                    .Text(FText::FromString("Number of Selected Assets: 0"))
+                ] + SVerticalBox::Slot()
+				.AutoHeight()
+				.VAlign(VAlign_Bottom) 
+	            .Padding(20, 0, 10, 20)
+				[
+					SAssignNew(DestinationPathTextBox, STextBlock)
+					.Text(FText::FromString(DestinationPathTextBoxString))
+				]
+            ]
+
+            + SHorizontalBox::Slot()
+	        .FillWidth(.5f)
+            [
+                SNew(SVerticalBox)
+            	+ SVerticalBox::Slot()
+				  .VAlign(VAlign_Center)
+				  .Padding(20, 10, 20, 10)
+				  [
+					  SNew(SBox)
+					  .HeightOverride(40.f)
+					  .WidthOverride(50.f)
+					  [
+						  SNew(SButton)
+						  .HAlign(HAlign_Center)
+						  .VAlign(VAlign_Center)
+						  .Text(FText::FromString("Move Assets"))
+						  .OnClicked_Raw(this, &FMoveAssetsWidget::OnMoveToSelectedFolderClicked)
+					  ]
+				  ]
+                + SVerticalBox::Slot()
+                .VAlign(VAlign_Center)
+                .Padding(20, 10, 20, 10)
+                [
+                    SNew(SBox)
+				    .HeightOverride(40.f)
+                	.WidthOverride(50.f)
+                    [
+                        SNew(SButton)
+                        .HAlign(HAlign_Center)
+                        .VAlign(VAlign_Center)
+                        .Text(FText::FromString("Move Assets to New Folder at Destination"))
                         .OnClicked_Raw(this, &FMoveAssetsWidget::OnCreateFolderButtonClicked)
                     ]
                 ]
-                + SHorizontalBox::Slot()
-                .FillWidth(.7f)
-                .VAlign(VAlign_Center)
-                [
-                    SAssignNew(TextBox, SEditableTextBox)
-                    .Text(FText::FromString("MyNewFolder"))
-                ]
+              
+	            + SVerticalBox::Slot()
+				.VAlign(VAlign_Center)
+                .Padding(20, 10, 20, 10)
+				[
+					SNew(SBox)
+				    .HeightOverride(40.f)
+					.WidthOverride(50.f)
+					[
+						SNew(SButton)
+						.HAlign(HAlign_Center)
+						.VAlign(VAlign_Center)
+						.Text(FText::FromString("Sort Assets by Type"))
+						.OnClicked_Raw(this, &FMoveAssetsWidget::OnSortAssetsButtonClicked)
+					]
+				]
             ]
-
-            + SVerticalBox::Slot()
-            .AutoHeight()
-            .Padding(0, 5)
-            [
-                SNew(SHorizontalBox)
-                + SHorizontalBox::Slot()
-                .FillWidth(.3f)
-                .VAlign(VAlign_Center)
-                .Padding(20)
-                [
-                    SNew(SBox)
-                    .HeightOverride(35.f)
-                    [
-                        SNew(SButton)
-                        .HAlign(HAlign_Center)
-                        .VAlign(VAlign_Center)
-                        .Text(FText::FromString("Move to Selected Folder"))
-                        .OnClicked_Raw(this, &FMoveAssetsWidget::OnMoveToSelectedFolderClicked)
-                    ]
-                ]
-                + SHorizontalBox::Slot()
-                .FillWidth(.3f)
-                .VAlign(VAlign_Center)
-                .Padding(20)
-                [
-                    SNew(SBox)
-                    .HeightOverride(35.f)
-                    [
-                        SNew(SButton)
-                        .HAlign(HAlign_Center)
-                        .VAlign(VAlign_Center)
-                        .Text(FText::FromString("Sort Assets by Type"))
-                        .OnClicked_Raw(this, &FMoveAssetsWidget::OnSortAssetsButtonClicked)
-                    ]
-                ]
-            ]
-        ]
-    );
+        ];
 
 	FSlateApplication::Get().AddWindowAsNativeChild(WidgetWindow, MainEditorWindow.ToSharedRef());
 
 }
 
-void FMoveAssetsWidget::MakeWidget2()
-{
-	FSlateApplication::Get().AddWindow( 
-	   SNew(SWindow)
-	   .Title(FText::FromString("Move Assets"))
-	   .ClientSize(FVector2D(550, 230))
-	   .SupportsMinimize(false)
-	   .SupportsMaximize(false)
-	   [
-		   SNew(SVerticalBox)
-	   ]
-	   );
-}
-
+ 
 bool FMoveAssetsWidget::MakeFolder(FString NewPath)
 {
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
@@ -159,7 +190,7 @@ bool FMoveAssetsWidget::UpdateRefrencers(FString& Path)
 	return true;
 }
 
-void FMoveAssetsWidget::MoveAssetsTo(TArray<FAssetData>& SelectedAssets, FString Path)
+bool FMoveAssetsWidget::MoveAssetsTo(const TArray<FAssetData>& SelectedAssets, FString Path)
 {
 	Path.RemoveFromStart(TEXT("/All"));
 	TArray<UObject*> Assets;
@@ -169,21 +200,25 @@ void FMoveAssetsWidget::MoveAssetsTo(TArray<FAssetData>& SelectedAssets, FString
 			Assets.Add(Asset);
 	}
 	AssetViewUtils::MoveAssets(Assets, Path);
-	UpdateRefrencers(Path);
-
+	return UpdateRefrencers(Path); 
 }
 
- 
+void FMoveAssetsWidget::EndOfOperationPopUp(bool bIsSuccess, const FString& Message)
+{
+	const FText Title = bIsSuccess? FText::FromString("Successful Move Asset Operation") : FText::FromString("Failed Move Asset Operation");
+	FMessageDialog::Debugf(FText::FromString(Message), Title);
+}
+
+
 FReply FMoveAssetsWidget::OnCreateFolderButtonClicked() const
 {
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
-	FString DesiredPath = ContentBrowserModule.Get().GetCurrentPath().GetVirtualPathString() + "/" + TextBox->GetText().ToString();
+	FString DesiredPath = DestinationPathTextBox->GetText().ToString() + "/NewFolder";
+	// maybe this can pop up a new window to name the folder?
 	DesiredPath.RemoveFromStart(TEXT("/All"));
-	TArray<FAssetData> SelectedAssets;
-	AssetSelectionUtils::GetSelectedAssets(SelectedAssets);
 	if (MakeFolder(DesiredPath))
 	{ 
-		MoveAssetsTo(SelectedAssets, DesiredPath);
+		MoveAssetsTo(CachedSelectedAssets, DesiredPath);
 		UpdateRefrencers(DesiredPath);
 	}
 	
@@ -192,13 +227,10 @@ FReply FMoveAssetsWidget::OnCreateFolderButtonClicked() const
 
 FReply FMoveAssetsWidget::OnSortAssetsButtonClicked() const
 {
-	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
-	FString CurrentPath = ContentBrowserModule.Get().GetCurrentPath().GetVirtualPathString();
-	TArray<FAssetData> SelectedAssets;
-	AssetSelectionUtils::GetSelectedAssets(SelectedAssets); 
+	FString CurrentPath = DestinationPathTextBox->GetText().ToString();
 	TSet<FName> AssetTypes;
 
-	for (FAssetData& Asset : SelectedAssets )
+	for (const FAssetData& Asset : CachedSelectedAssets )
 	{
 		FName AssetName = Asset.AssetClassPath.GetAssetName();
 		FString DestinationPath = CurrentPath + "/" + AssetName.ToString() + "s";
@@ -218,6 +250,36 @@ FReply FMoveAssetsWidget::OnSortAssetsButtonClicked() const
 
 	return FReply::Handled();
 
+}
+
+FReply FMoveAssetsWidget::OnMoveToSelectedFolderClicked() const
+{
+	FString CurrentPath = DestinationPathTextBox->GetText().ToString();
+	MoveAssetsTo(CachedSelectedAssets, CurrentPath);
+	return FReply::Handled();
+}
+
+FReply FMoveAssetsWidget::OnCacheSelectedAssets()
+{
+	AssetSelectionUtils::GetSelectedAssets(CachedSelectedAssets);
+	FString TextBoxString = "Number of Selected Assets: " + FString::FromInt(CachedSelectedAssets.Num());
+	SelectedAssetsNumTextBox.Get()->SetText(FText::FromString(TextBoxString));
+
+	return FReply::Handled();
+}
+
+FReply FMoveAssetsWidget::OnChangedDestinationPath() const
+{
+	TArray<FString> SelectedPaths;
+	FContentBrowserModule& ContentBrowser = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+	ContentBrowser.Get().GetSelectedFolders(SelectedPaths);
+	if (SelectedPaths.IsEmpty())
+		ContentBrowser.Get().GetSelectedPathViewFolders(SelectedPaths);
+
+	if (!SelectedPaths.IsEmpty())
+		DestinationPathTextBox.Get()->SetText(FText::FromString(SelectedPaths.Last()));
+
+	return FReply::Handled();
 }
  
 

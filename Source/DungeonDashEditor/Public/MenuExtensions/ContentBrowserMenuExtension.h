@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "EditorUtilityWidget/MoveAssetsWidget.h"
-#include "EditorUtilityWidget/PathSearch.h"
 
 DECLARE_DELEGATE_OneParam(FFillSubmenuDelegate, FMenuBuilder&)
 
@@ -21,7 +20,5 @@ public:
  
 	TSharedRef<FExtender> MenuExtensionDelegate(const TArray<FAssetData>& SelectedAssets);
 	TArray<FAssetData> SelectedAssets;
-
-
-
+	TSharedPtr<FMoveAssetsWidget> MoveAssetsWidget;
 };
