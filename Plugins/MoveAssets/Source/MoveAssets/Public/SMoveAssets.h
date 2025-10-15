@@ -23,20 +23,22 @@ public:
 	void Construct(const FArguments& InArgs);
 
 protected:
-	static bool MakeFolder(FString NewPath, bool bSkipErrorMessasge);
-	static bool UpdateRefrencers(FString& Path);
-	static TArray<FAssetData> MoveAssetsTo(const TArray<FAssetData>& SelectedAssets, FString Path); 
+	bool MakeFolder(FString NewPath, bool bSkipErrorMessasge) const;
+	bool UpdateRefrencers(FString& Path) const;
+	TArray<FAssetData> MoveAssetsTo(const TArray<FAssetData>& SelectedAssets, FString Path) const;
+	void GetAssetDependencies(const FAssetData&, TArray<FName>& OutDependencies) const;
 
 private:
 	FReply OnCreateFolderButtonClicked() const;
 	FReply OnSortAssetsButtonClicked() const;
 	FReply OnMoveToSelectedFolderClicked() const;
 	FReply OnCacheSelectedAssets();
-	FReply OnChangedDestinationPath() const; 
-   
+	FReply OnChangedDestinationPath() const;
+ 
 
 	TSharedPtr<STextBlock> SelectedAssetsNumTextBox;
 	TSharedPtr<STextBlock> DestinationPathTextBox;
+	TSharedPtr<SCheckBox> DependancyCheckerCheckBox;
 	TArray<FAssetData> CachedSelectedAssets;
 	FOnCompletedMoveOperation CompletedMoveOperation;
 };

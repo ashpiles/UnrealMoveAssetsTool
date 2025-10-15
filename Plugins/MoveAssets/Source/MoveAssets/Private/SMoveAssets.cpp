@@ -19,7 +19,7 @@ void SMoveAssets::Construct(const FArguments& InArgs)
 {
 	// Initializing important variables
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
-	FString DestinationPathTextBoxString = ContentBrowserModule.Get().GetCurrentPath().GetVirtualPathString();
+	FString DestinationPathTextBoxString = "Asset Destination: " + ContentBrowserModule.Get().GetCurrentPath().GetVirtualPathString();
 	DestinationPathTextBoxString.RemoveFromStart("/All");
 
 	// To bypass const in move asset operations so that Selected Assets can be updated
@@ -40,6 +40,19 @@ void SMoveAssets::Construct(const FArguments& InArgs)
 		.FillWidth(.5f)
 		[
 			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.VAlign(VAlign_Top)
+			[
+				SAssignNew(DependancyCheckerCheckBox, SCheckBox)
+			]
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.VAlign(VAlign_Top)
+			[
+				SNew(STextBlock)
+				.Text(FText::FromString("Move assets with hard-coded references"))
+			]
 			+ SVerticalBox::Slot()
 			  .AutoHeight()
 			  .VAlign(VAlign_Bottom) 
@@ -154,7 +167,7 @@ void SMoveAssets::Construct(const FArguments& InArgs)
 	OnCacheSelectedAssets();
 } 
 
-bool SMoveAssets::MakeFolder(FString NewPath, bool bSkipErrorMessage = false)
+bool SMoveAssets::MakeFolder(FString NewPath, bool bSkipErrorMessage = false) const
 {
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
 
@@ -167,7 +180,7 @@ bool SMoveAssets::MakeFolder(FString NewPath, bool bSkipErrorMessage = false)
 	return true;
 }
 
-bool SMoveAssets::UpdateRefrencers(FString& Path)
+bool SMoveAssets::UpdateRefrencers(FString& Path) const
 {
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
 	FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
@@ -199,17 +212,35 @@ bool SMoveAssets::UpdateRefrencers(FString& Path)
 	return true;
 }
 
-TArray<FAssetData> SMoveAssets::MoveAssetsTo(const TArray<FAssetData>& SelectedAssets, FString Path)
+TArray<FAssetData> SMoveAssets::MoveAssetsTo(const TArray<FAssetData>& SelectedAssets, FString Path) const
 {
 	Path.RemoveFromStart(TEXT("/All"));
 	TArray<UObject*> Assets;
 	TArray<FAssetData> NewSelectedAssets;
-	for (auto AssetData : SelectedAssets)
-	{
+	bool bIsDepdencyCheckerChecked = DependancyCheckerCheckBox->GetCheckedState() == ECheckBoxState::Checked ? true : false;
+ 
+	
+	for (const FAssetData& AssetData : SelectedAssets)
+	{ 
 		if (UObject* Asset = AssetData.GetAsset())
-		{ 
-			Assets.Add(Asset);
-			NewSelectedAssets.Add(FAssetData(Asset, FAssetData::ECreationFlags::None)); 
+		{
+			if (bIsDepdencyCheckerChecked)
+			{
+				TArray<FName> OutDependencies;
+				GetAssetDependencies(AssetData, OutDependencies);
+
+				if (OutDependencies.Num() <= 0)
+				{ 
+					Assets.Add(Asset);
+					NewSelectedAssets.Add(FAssetData(Asset, FAssetData::ECreationFlags::None)); 
+				}
+			}
+			else
+			{ 
+				Assets.Add(Asset);
+				NewSelectedAssets.Add(FAssetData(Asset, FAssetData::ECreationFlags::None)); 
+			}
+			
 		} 
 		NewSelectedAssets.Add(AssetData); 
 	}
@@ -217,6 +248,17 @@ TArray<FAssetData> SMoveAssets::MoveAssetsTo(const TArray<FAssetData>& SelectedA
 	UpdateRefrencers(Path);
 	
 	return NewSelectedAssets;
+}
+
+void SMoveAssets::GetAssetDependencies(const FAssetData& AssetData, TArray<FName>& OutDependencies) const
+{
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+
+	AssetRegistryModule.Get().GetDependencies(AssetData.PackageName, OutDependencies);
+
+	for (FName& Dependency : OutDependencies)
+		UE_LOG(LogTemp, Display, TEXT("%s"), *Dependency.ToString())
+
 }
 
 
@@ -244,8 +286,9 @@ FReply SMoveAssets::OnCreateFolderButtonClicked() const
 FReply SMoveAssets::OnSortAssetsButtonClicked() const
 {
 	TArray<FAssetData> MovedAssets;
-	FString CurrentPath = DestinationPathTextBox->GetText().ToString();
-	TSet<FName> AssetTypes;
+	FString DestinationPath = DestinationPathTextBox->GetText().ToString();
+	DestinationPath.RemoveFromStart(TEXT("/All"));
+	TMap<FName, TArray<FAssetData>> AssetTypes;
 
 	if (CachedSelectedAssets.Num() <= 0)
 	{ 
@@ -256,18 +299,17 @@ FReply SMoveAssets::OnSortAssetsButtonClicked() const
 	for (const FAssetData& Asset : CachedSelectedAssets )
 	{
 		FName AssetName = Asset.AssetClassPath.GetAssetName();
-		FString DestinationPath = CurrentPath + "/" + AssetName.ToString() + "s";
-		DestinationPath.RemoveFromStart(TEXT("/All"));
-		TArray<FAssetData> FilteredAsset;
-		FilteredAsset.Add(Asset);
-		if (!AssetTypes.Contains(AssetName))
-		{
-			AssetTypes.Add(AssetName);
-			MakeFolder(DestinationPath, true);
-		}
-		MovedAssets.Append(MoveAssetsTo(FilteredAsset, DestinationPath));
+		AssetTypes.FindOrAdd(AssetName).Add(Asset);
 	}
-	FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Sorted " + FString::FromInt(CachedSelectedAssets.Num()) + " assets to " + FString::FromInt(AssetTypes.Num()) + " unique folders at " + CurrentPath)) ;
+	for (auto Element : AssetTypes )
+	{ 
+		FString UniqueDestinationPath = DestinationPath + "/" + Element.Key.ToString() + "s";
+		MakeFolder(UniqueDestinationPath, true);
+		MovedAssets.Append(MoveAssetsTo(Element.Value, UniqueDestinationPath)); 
+	}
+	
+	
+	FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Sorted " + FString::FromInt(CachedSelectedAssets.Num()) + " assets to " + FString::FromInt(AssetTypes.Num()) + " unique folders at " + DestinationPath)) ;
 	CompletedMoveOperation.ExecuteIfBound(MovedAssets);
 
 	return FReply::Handled(); 
@@ -275,9 +317,9 @@ FReply SMoveAssets::OnSortAssetsButtonClicked() const
 
 FReply SMoveAssets::OnMoveToSelectedFolderClicked() const
 {
-	FString CurrentPath = DestinationPathTextBox->GetText().ToString();
-	FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Moved " + FString::FromInt(CachedSelectedAssets.Num()) + " assets to " + CurrentPath));
-	CompletedMoveOperation.ExecuteIfBound(MoveAssetsTo(CachedSelectedAssets, CurrentPath));
+	FString DestinationPath = DestinationPathTextBox->GetText().ToString();
+	FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Moved " + FString::FromInt(CachedSelectedAssets.Num()) + " assets to " + DestinationPath));
+	CompletedMoveOperation.ExecuteIfBound(MoveAssetsTo(CachedSelectedAssets, DestinationPath));
 	
 	return FReply::Handled();
 }
@@ -299,14 +341,11 @@ FReply SMoveAssets::OnChangedDestinationPath() const
 	FContentBrowserModule& ContentBrowser = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
 	ContentBrowser.Get().GetSelectedFolders(SelectedPaths);
 	if (SelectedPaths.IsEmpty())
-	{ 
 		ContentBrowser.Get().GetSelectedPathViewFolders(SelectedPaths);
-	}
 
 	if (!SelectedPaths.IsEmpty())
-		DestinationPathTextBox.Get()->SetText(FText::FromString(SelectedPaths.Last())); 
+		DestinationPathTextBox.Get()->SetText( FText::FromString("Asset Destination: " + SelectedPaths.Last())); 
 
 	return FReply::Handled();
 }
- 
 
