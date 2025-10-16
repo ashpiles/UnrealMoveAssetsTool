@@ -19,7 +19,7 @@ void SMoveAssets::Construct(const FArguments& InArgs)
 {
 	// Initializing important variables
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
-	FString DestinationPathTextBoxString = "Asset Destination: " + ContentBrowserModule.Get().GetCurrentPath().GetVirtualPathString();
+	FString DestinationPathTextBoxString =  ContentBrowserModule.Get().GetCurrentPath().GetVirtualPathString();
 	DestinationPathTextBoxString.RemoveFromStart("/All");
 
 	// To bypass const in move asset operations so that Selected Assets can be updated
@@ -43,20 +43,31 @@ void SMoveAssets::Construct(const FArguments& InArgs)
 			+ SVerticalBox::Slot()
 			.AutoHeight()
 			.VAlign(VAlign_Top)
+			.Padding(20, 0, 20, 0)
 			[
 				SAssignNew(DependancyCheckerCheckBox, SCheckBox)
+				.OnCheckStateChanged_Lambda([this] (ECheckBoxState State)
+				{
+					if (State == ECheckBoxState::Checked && !bGaveWarning)
+					{ 
+						FMessageDialog::Debugf(FText::FromString("By checking this box its possible to move assets from an expected path potentially causing errors"), FText::FromString("Warning"));
+						bGaveWarning = true;
+					}
+				})
 			]
 			+ SVerticalBox::Slot()
 			.AutoHeight()
 			.VAlign(VAlign_Top)
+			.Padding(20, 0, 20, 0)
 			[
 				SNew(STextBlock)
-				.Text(FText::FromString("Move assets with hard-coded references"))
+				.Text(FText::FromString("Move assets with dependencies"))
+				.ColorAndOpacity(FSlateColor(FLinearColor(.6,.6,.6,.6)))
 			]
 			+ SVerticalBox::Slot()
 			  .AutoHeight()
 			  .VAlign(VAlign_Bottom) 
-			  .Padding(20, 80, 20, 20)
+			  .Padding(20, 40, 20, 20)
 			  [
 				  SNew(SBox)
 				  .HeightOverride(35.f)
@@ -103,8 +114,20 @@ void SMoveAssets::Construct(const FArguments& InArgs)
 			.VAlign(VAlign_Bottom) 
 			.Padding(20, 0, 10, 20)
 			[
-				SAssignNew(DestinationPathTextBox, STextBlock)
-				.Text(FText::FromString(DestinationPathTextBoxString))
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(STextBlock)
+					.Text(FText::FromString("Destination Path: "))
+				]
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SAssignNew(DestinationPathTextBox, STextBlock) 
+					.Text(FText::FromString(DestinationPathTextBoxString))
+					
+				]
 			]
 		]
 
@@ -224,7 +247,7 @@ TArray<FAssetData> SMoveAssets::MoveAssetsTo(const TArray<FAssetData>& SelectedA
 	{ 
 		if (UObject* Asset = AssetData.GetAsset())
 		{
-			if (bIsDepdencyCheckerChecked)
+			if (!bIsDepdencyCheckerChecked)
 			{
 				TArray<FName> OutDependencies;
 				GetAssetDependencies(AssetData, OutDependencies);
@@ -344,7 +367,7 @@ FReply SMoveAssets::OnChangedDestinationPath() const
 		ContentBrowser.Get().GetSelectedPathViewFolders(SelectedPaths);
 
 	if (!SelectedPaths.IsEmpty())
-		DestinationPathTextBox.Get()->SetText( FText::FromString("Asset Destination: " + SelectedPaths.Last())); 
+		DestinationPathTextBox.Get()->SetText( FText::FromString(SelectedPaths.Last())); 
 
 	return FReply::Handled();
 }
