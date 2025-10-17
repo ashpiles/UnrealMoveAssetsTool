@@ -8,6 +8,7 @@
 #include "AssetToolsModule.h"
 #include "AssetViewUtils.h"
 #include "ContentBrowserModule.h"
+#include "FileHelpers.h"
 #include "IAssetTools.h"
 #include "IContentBrowserSingleton.h"
 #include "AssetRegistry/AssetRegistryModule.h"
@@ -25,8 +26,7 @@ void SMoveAssets::Construct(const FArguments& InArgs)
 	// To bypass const in move asset operations so that Selected Assets can be updated
 	CompletedMoveOperation.BindLambda([this] (const TArray<FAssetData>& InAssetData)
 	{
-		for (const FAssetData& AssetData : InAssetData) 
-			CachedSelectedAssets.Remove(AssetData);
+		CachedSelectedAssets.Empty();
 		
 		FString TextBoxString = "Number of Selected Assets: " + FString::FromInt(CachedSelectedAssets.Num());
 		SelectedAssetsNumTextBox.Get()->SetText(FText::FromString(TextBoxString));
@@ -39,31 +39,7 @@ void SMoveAssets::Construct(const FArguments& InArgs)
 		+ SHorizontalBox::Slot()
 		.FillWidth(.5f)
 		[
-			SNew(SVerticalBox)
-			+ SVerticalBox::Slot()
-			.AutoHeight()
-			.VAlign(VAlign_Top)
-			.Padding(20, 0, 20, 0)
-			[
-				SAssignNew(DependancyCheckerCheckBox, SCheckBox)
-				.OnCheckStateChanged_Lambda([this] (ECheckBoxState State)
-				{
-					if (State == ECheckBoxState::Checked && !bGaveWarning)
-					{ 
-						FMessageDialog::Debugf(FText::FromString("By checking this box its possible to move assets from an expected path potentially causing errors"), FText::FromString("Warning"));
-						bGaveWarning = true;
-					}
-				})
-			]
-			+ SVerticalBox::Slot()
-			.AutoHeight()
-			.VAlign(VAlign_Top)
-			.Padding(20, 0, 20, 0)
-			[
-				SNew(STextBlock)
-				.Text(FText::FromString("Move assets with dependencies"))
-				.ColorAndOpacity(FSlateColor(FLinearColor(.6,.6,.6,.6)))
-			]
+			SNew(SVerticalBox) 
 			+ SVerticalBox::Slot()
 			  .AutoHeight()
 			  .VAlign(VAlign_Bottom) 
@@ -231,6 +207,7 @@ bool SMoveAssets::UpdateRefrencers(FString& Path) const
 		UE_LOG(LogTemp, Warning, TEXT("UpdateRefrences - no Refrences to update"));
 		return false;
 	}
+	FEditorFileUtils::SaveDirtyPackages(true, true, true);
 	AssetTools.FixupReferencers(Redirectors);
 	return true;
 }
@@ -240,35 +217,19 @@ TArray<FAssetData> SMoveAssets::MoveAssetsTo(const TArray<FAssetData>& SelectedA
 	Path.RemoveFromStart(TEXT("/All"));
 	TArray<UObject*> Assets;
 	TArray<FAssetData> NewSelectedAssets;
-	bool bIsDepdencyCheckerChecked = DependancyCheckerCheckBox->GetCheckedState() == ECheckBoxState::Checked ? true : false;
  
 	
 	for (const FAssetData& AssetData : SelectedAssets)
 	{ 
 		if (UObject* Asset = AssetData.GetAsset())
 		{
-			if (!bIsDepdencyCheckerChecked)
-			{
-				TArray<FName> OutDependencies;
-				GetAssetDependencies(AssetData, OutDependencies);
-
-				if (OutDependencies.Num() <= 0)
-				{ 
-					Assets.Add(Asset);
-					NewSelectedAssets.Add(FAssetData(Asset, FAssetData::ECreationFlags::None)); 
-				}
-			}
-			else
-			{ 
-				Assets.Add(Asset);
-				NewSelectedAssets.Add(FAssetData(Asset, FAssetData::ECreationFlags::None)); 
-			}
-			
-		} 
-		NewSelectedAssets.Add(AssetData); 
+			Assets.Add(Asset);
+			NewSelectedAssets.Add(FAssetData(Asset, FAssetData::ECreationFlags::None)); 
+		}
+		else
+			NewSelectedAssets.Add(AssetData); 
 	}
 	AssetViewUtils::MoveAssets(Assets, Path);
-	UpdateRefrencers(Path);
 	
 	return NewSelectedAssets;
 }
@@ -292,15 +253,12 @@ FReply SMoveAssets::OnCreateFolderButtonClicked() const
 	// maybe this can pop up a new window to name the folder?
 	DesiredPath.RemoveFromStart(TEXT("/All"));
 	if (MakeFolder(DesiredPath))
-	{ 
 		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Moved " + FString::FromInt(CachedSelectedAssets.Num()) + " assets to " + DesiredPath)) ;
-		CompletedMoveOperation.ExecuteIfBound(MoveAssetsTo(CachedSelectedAssets, DesiredPath));
-	}
 	else
-	{
-		CompletedMoveOperation.ExecuteIfBound(CachedSelectedAssets);
-		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Failed to move " + FString::FromInt(CachedSelectedAssets.Num()) + " assets to " + DesiredPath)) ;
-	}
+		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Failed to create new folder at " + DesiredPath)) ;
+	
+	CompletedMoveOperation.ExecuteIfBound(MoveAssetsTo(CachedSelectedAssets, DesiredPath));
+	UpdateRefrencers(DesiredPath);
 	
 	
 	return FReply::Handled();
@@ -329,6 +287,7 @@ FReply SMoveAssets::OnSortAssetsButtonClicked() const
 		FString UniqueDestinationPath = DestinationPath + "/" + Element.Key.ToString() + "s";
 		MakeFolder(UniqueDestinationPath, true);
 		MovedAssets.Append(MoveAssetsTo(Element.Value, UniqueDestinationPath)); 
+		UpdateRefrencers(DestinationPath);
 	}
 	
 	
@@ -341,8 +300,10 @@ FReply SMoveAssets::OnSortAssetsButtonClicked() const
 FReply SMoveAssets::OnMoveToSelectedFolderClicked() const
 {
 	FString DestinationPath = DestinationPathTextBox->GetText().ToString();
+	DestinationPath.RemoveFromStart(TEXT("/All"));
 	FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Moved " + FString::FromInt(CachedSelectedAssets.Num()) + " assets to " + DestinationPath));
 	CompletedMoveOperation.ExecuteIfBound(MoveAssetsTo(CachedSelectedAssets, DestinationPath));
+	UpdateRefrencers(DestinationPath);
 	
 	return FReply::Handled();
 }

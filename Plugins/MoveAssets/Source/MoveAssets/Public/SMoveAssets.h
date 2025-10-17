@@ -38,8 +38,6 @@ private:
 
 	TSharedPtr<STextBlock> SelectedAssetsNumTextBox;
 	TSharedPtr<STextBlock> DestinationPathTextBox;
-	TSharedPtr<SCheckBox> DependancyCheckerCheckBox;
 	TArray<FAssetData> CachedSelectedAssets;
 	FOnCompletedMoveOperation CompletedMoveOperation;
-	bool bGaveWarning = false;
 };
