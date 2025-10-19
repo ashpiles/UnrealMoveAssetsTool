@@ -31,7 +31,7 @@ void FMoveAssetsMenuExtension::MakeWidget()
 	TSharedPtr<SWindow> MainEditorWindow = FGlobalTabmanager::Get()->GetRootWindow(); 
 	TSharedPtr<SWindow> MoveAssetsWidgetWindow = SNew(SWindow) 
 		.Title(FText::FromString("Move Asset Helper")) 
-		.ClientSize(FVector2D(800, 275)) 
+		.ClientSize(FVector2D(800, 235)) 
 		.SupportsMaximize(false)
 		   .SupportsMinimize(false)
 		   .FocusWhenFirstShown(false)
