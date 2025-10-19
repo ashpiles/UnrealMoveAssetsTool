@@ -24,146 +24,58 @@ void SMoveAssets::Construct(const FArguments& InArgs)
 	DestinationPathTextBoxString.RemoveFromStart("/All");
 
 	// To bypass const in move asset operations so that Selected Assets can be updated
-	CompletedMoveOperation.BindLambda([this] (const TArray<FAssetData>& InAssetData)
-	{
-		CachedSelectedAssets.Empty();
-		
-		FString TextBoxString = "Number of Selected Assets: " + FString::FromInt(CachedSelectedAssets.Num());
-		SelectedAssetsNumTextBox.Get()->SetText(FText::FromString(TextBoxString));
-	});
-
 
     ChildSlot
-	[ 
-		SNew(SHorizontalBox) 
-		+ SHorizontalBox::Slot()
-		.FillWidth(.5f)
+	[
+		SNew(SVerticalBox)
+		+ SVerticalBox::Slot()
+		.FillHeight(.5f)
 		[
-			SNew(SVerticalBox) 
-			+ SVerticalBox::Slot()
-			  .AutoHeight()
-			  .VAlign(VAlign_Bottom) 
-			  .Padding(20, 40, 20, 20)
-			  [
-				  SNew(SBox)
-				  .HeightOverride(35.f)
-				  .WidthOverride(50.f)
-				  [
-					  SNew(SButton)
-					  .Text(FText::FromString("Select Path to Move Assets To"))
-					  .VAlign(VAlign_Center)
-					  .HAlign(HAlign_Center)
-					  .IsFocusable(false)
-					  .OnClicked_Raw(this, &SMoveAssets::OnChangedDestinationPath)
-				  ]
-			  ]
-			+ SVerticalBox::Slot()
-			.AutoHeight()
-			.VAlign(VAlign_Bottom) 
-			.Padding(20, 0, 20, 20)
+			SAssignNew(NewFolderName, SEditableTextBox) 
+		]
+		+ SVerticalBox::Slot()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
 			[
 				SNew(SBox)
-				.HeightOverride(35.f)
-				.WidthOverride(50.f)
 				[
 					SNew(SButton)
-					.Text(FText::FromString("Select Assets to Move"))
-					.VAlign(VAlign_Center)
-					.HAlign(HAlign_Center)
-					.IsFocusable(false)
-					.OnClicked_Lambda([&]
-					{
-						return OnCacheSelectedAssets();
-					})
+					.Text("Move")
 				]
 			]
-			+ SVerticalBox::Slot()
-			.AutoHeight()
-			.VAlign(VAlign_Bottom) 
-			.Padding(20, 0, 10, 20)
+			+ SHorizontalBox::Slot()
 			[
-				SAssignNew(SelectedAssetsNumTextBox, STextBlock)
-				.Text(FText::FromString("Number of Selected Assets: 0"))
+				SNew(SBox)
+				[
+					SNew(SButton)
+					.Text("Move & Sort")
+				]
+			] 
+		]
+		+ SVerticalBox::Slot()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			[
+				SNew(SCheckBox)
+				.OnCheckStateChanged_Lambda([this] (ECheckBoxState State)
+				{
+					if (State == ECheckBoxState::Checked)
+						AddAdvancedMenu(); // trigger spawn event
+					else
+						RemoveAdvancedMenu(); // trigger despawn event
+				})
 			]
-			+ SVerticalBox::Slot()
-			.AutoHeight()
-			.VAlign(VAlign_Bottom) 
-			.Padding(20, 0, 10, 20)
+			+ SHorizontalBox::Slot()
 			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				[
-					SNew(STextBlock)
-					.Text(FText::FromString("Destination Path: "))
-				]
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				[
-					SAssignNew(DestinationPathTextBox, STextBlock) 
-					.Text(FText::FromString(DestinationPathTextBoxString))
-					
-				]
+				SNew(STextBlock)
 			]
 		]
+	];
+		
 
-		+ SHorizontalBox::Slot()
-		.FillWidth(.5f)
-		[
-			SNew(SVerticalBox)
-			+ SVerticalBox::Slot()
-			  .VAlign(VAlign_Center)
-			  .Padding(20, 10, 20, 10)
-			  [
-				  SNew(SBox)
-				  .HeightOverride(40.f)
-				  .WidthOverride(50.f)
-				  [
-					  SNew(SButton)
-					  .HAlign(HAlign_Center)
-					  .VAlign(VAlign_Center)
-					  .IsFocusable(false)
-					  .Text(FText::FromString("Move Assets"))
-					  .OnClicked_Raw(this, &SMoveAssets::OnMoveToSelectedFolderClicked)
-				  ]
-			  ]
-			+ SVerticalBox::Slot()
-			.VAlign(VAlign_Center)
-			.Padding(20, 10, 20, 10)
-			[
-				SNew(SBox)
-				.HeightOverride(40.f)
-				.WidthOverride(50.f)
-				[
-					SNew(SButton)
-					.HAlign(HAlign_Center)
-					.VAlign(VAlign_Center)
-					.IsFocusable(false)
-					.Text(FText::FromString("Move Assets to New Folder at Destination"))
-					.OnClicked_Raw(this, &SMoveAssets::OnCreateFolderButtonClicked)
-				]
-			]
-		  
-			+ SVerticalBox::Slot()
-			.VAlign(VAlign_Center)
-			.Padding(20, 10, 20, 10)
-			[
-				SNew(SBox)
-				.HeightOverride(40.f)
-				.WidthOverride(50.f)
-				[
-					SNew(SButton)
-					.HAlign(HAlign_Center)
-					.VAlign(VAlign_Center)
-					.IsFocusable(false)
-					.Text(FText::FromString("Sort Assets by Type"))
-					.OnClicked_Raw(this, &SMoveAssets::OnSortAssetsButtonClicked)
-				]
-			]
-		]
-	]; 
 
-	OnCacheSelectedAssets();
 } 
 
 bool SMoveAssets::MakeFolder(FString NewPath, bool bSkipErrorMessage = false) const
@@ -256,8 +168,7 @@ FReply SMoveAssets::OnCreateFolderButtonClicked() const
 		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Moved " + FString::FromInt(CachedSelectedAssets.Num()) + " assets to " + DesiredPath)) ;
 	else
 		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Failed to create new folder at " + DesiredPath)) ;
-	
-	CompletedMoveOperation.ExecuteIfBound(MoveAssetsTo(CachedSelectedAssets, DesiredPath));
+	MoveAssetsTo(CachedSelectedAssets, DesiredPath);
 	UpdateRefrencers(DesiredPath);
 	
 	
@@ -292,7 +203,6 @@ FReply SMoveAssets::OnSortAssetsButtonClicked() const
 	
 	
 	FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Sorted " + FString::FromInt(CachedSelectedAssets.Num()) + " assets to " + FString::FromInt(AssetTypes.Num()) + " unique folders at " + DestinationPath)) ;
-	CompletedMoveOperation.ExecuteIfBound(MovedAssets);
 
 	return FReply::Handled(); 
 }
@@ -302,7 +212,7 @@ FReply SMoveAssets::OnMoveToSelectedFolderClicked() const
 	FString DestinationPath = DestinationPathTextBox->GetText().ToString();
 	DestinationPath.RemoveFromStart(TEXT("/All"));
 	FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Moved " + FString::FromInt(CachedSelectedAssets.Num()) + " assets to " + DestinationPath));
-	CompletedMoveOperation.ExecuteIfBound(MoveAssetsTo(CachedSelectedAssets, DestinationPath));
+	MoveAssetsTo(CachedSelectedAssets, DestinationPath);
 	UpdateRefrencers(DestinationPath);
 	
 	return FReply::Handled();
@@ -331,5 +241,47 @@ FReply SMoveAssets::OnChangedDestinationPath() const
 		DestinationPathTextBox.Get()->SetText( FText::FromString(SelectedPaths.Last())); 
 
 	return FReply::Handled();
+}
+
+bool SMoveAssets::AddAdvancedMenu()
+{
+	TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(AsShared());
+	SAssignNew(AdvancedMenuWindow, SWindow)
+		[
+			SNew(SGridPanel) 
+			+ SGridPanel::Slot(0, 0)
+			[
+				SNew(SHorizontalBox)
+			]
+			+ SGridPanel::Slot(0, 1)
+			[
+				SNew(SHorizontalBox)
+			]
+			+ SGridPanel::Slot(1,0)
+			[
+				SNew(SButton)
+				.Text(FText::FromString("Select Path"))
+			]
+			+ SGridPanel::Slot(1, 1)
+			[
+				// turn this into an asset search bar?
+				SNew(SEditableTextBox)
+			]
+			+ SGridPanel::Slot(2, 0)
+			[
+				SNew(SButton)
+				.Text(FText::FromString("Cache Selected Assets to Next Add Operation"))
+			]
+			
+		];
+
+	FSlateApplication::Get().AddWindowAsNativeChild(AdvancedMenuWindow.ToSharedRef(), ParentWindow.ToSharedRef());
+
+	return true;
+}
+
+bool SMoveAssets::RemoveAdvancedMenu()
+{
+	return true;
 }
 

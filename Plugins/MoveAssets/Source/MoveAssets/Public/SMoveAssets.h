@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-DECLARE_DELEGATE_OneParam(FOnCompletedMoveOperation, const TArray<FAssetData>&)
 
 /**
  * 
@@ -34,10 +33,15 @@ private:
 	FReply OnMoveToSelectedFolderClicked() const;
 	FReply OnCacheSelectedAssets();
 	FReply OnChangedDestinationPath() const;
- 
+
+	// connected to an event from the extension launcher
+	// the event will then spawn this menu and we can then spawn this
+	bool AddAdvancedMenu();
+	bool RemoveAdvancedMenu();
 
 	TSharedPtr<STextBlock> SelectedAssetsNumTextBox;
 	TSharedPtr<STextBlock> DestinationPathTextBox;
+	TSharedPtr<SEditableTextBox> NewFolderName;
+	TSharedPtr<SWindow> AdvancedMenuWindow;
 	TArray<FAssetData> CachedSelectedAssets;
-	FOnCompletedMoveOperation CompletedMoveOperation;
 };
