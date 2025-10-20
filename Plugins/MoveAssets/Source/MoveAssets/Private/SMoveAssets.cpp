@@ -11,6 +11,7 @@
 #include "FileHelpers.h"
 #include "IAssetTools.h"
 #include "IContentBrowserSingleton.h"
+#include "SAssetSearchBox.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 
 
@@ -29,7 +30,9 @@ void SMoveAssets::Construct(const FArguments& InArgs)
 	[
 		SNew(SVerticalBox)
 		+ SVerticalBox::Slot()
-		.FillHeight(.5f)
+		.AutoHeight()
+		.VAlign(VAlign_Center)
+		.Padding(30,10)
 		[
 			SAssignNew(NewFolderName, SEditableTextBox) 
 		]
@@ -39,24 +42,38 @@ void SMoveAssets::Construct(const FArguments& InArgs)
 			+ SHorizontalBox::Slot()
 			[
 				SNew(SBox)
+				.Padding(20,5)
+				.MinDesiredHeight(70)
+				.MinDesiredWidth(200)
 				[
 					SNew(SButton)
-					.Text("Move")
+					.VAlign(VAlign_Center)
+					.HAlign(HAlign_Center)
+					.Text(FText::FromString("Move"))
 				]
 			]
 			+ SHorizontalBox::Slot()
 			[
 				SNew(SBox)
+				.Padding(20,5)
+				.MinDesiredHeight(70)
+				.MinDesiredWidth(200)
 				[
 					SNew(SButton)
-					.Text("Move & Sort")
+					.VAlign(VAlign_Center)
+					.HAlign(HAlign_Center)
+					.Text(FText::FromString("Move & Sort"))
 				]
 			] 
 		]
 		+ SVerticalBox::Slot()
+		.AutoHeight()
 		[
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot()
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Left)
+			.Padding(10)
 			[
 				SNew(SCheckBox)
 				.OnCheckStateChanged_Lambda([this] (ECheckBoxState State)
@@ -247,36 +264,93 @@ bool SMoveAssets::AddAdvancedMenu()
 {
 	TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(AsShared());
 	SAssignNew(AdvancedMenuWindow, SWindow)
+	.ClientSize(FVector2D(500, 150))
+	.Title(FText::FromString("Asset Mover Advanced Menu"))
+	[
+		SNew(SVerticalBox)
+		+ SVerticalBox::Slot()
 		[
-			SNew(SGridPanel) 
-			+ SGridPanel::Slot(0, 0)
+			SNew(SHorizontalBox) 
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Left)
+			.Padding(5)
 			[
-				SNew(SHorizontalBox)
+				SNew(SCheckBox)
 			]
-			+ SGridPanel::Slot(0, 1)
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Left)
+			.Padding(5)
 			[
-				SNew(SHorizontalBox)
+				SNew(STextBlock)
+				.Text(FText::FromString("Auto Save Assets on Move"))
 			]
-			+ SGridPanel::Slot(1,0)
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Left)
+			.Padding(5)
 			[
-				SNew(SButton)
-				.Text(FText::FromString("Select Path"))
+				SNew(SCheckBox)
 			]
-			+ SGridPanel::Slot(1, 1)
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Left)
+			.Padding(5)
 			[
-				// turn this into an asset search bar?
-				SNew(SEditableTextBox)
+				SNew(STextBlock)
+				.Text(FText::FromString("Auto Delete Redirectors on Move"))
 			]
-			+ SGridPanel::Slot(2, 0)
+		]
+		+ SVerticalBox::Slot()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(5)
 			[
-				SNew(SButton)
-				.Text(FText::FromString("Cache Selected Assets to Next Add Operation"))
+				SNew(SBox)
+				.HeightOverride(60)
+				.WidthOverride(200)
+				[ 
+					SNew(SButton)
+					.Text(FText::FromString("Select Destination Path"))
+				]
 			]
-			
-		];
-
-	FSlateApplication::Get().AddWindowAsNativeChild(AdvancedMenuWindow.ToSharedRef(), ParentWindow.ToSharedRef());
-
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(5)
+			[
+				SNew(SBox)
+				.HeightOverride(60)
+				.WidthOverride(400)
+				[ 
+					SNew(SAssetSearchBox)
+				]
+			]
+		]
+		+ SVerticalBox::Slot()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.Padding(5)
+			[
+				SNew(SBox)
+				.HeightOverride(60)
+				.WidthOverride(200)
+				[ 
+					SNew(SButton)
+					.Text(FText::FromString("Add Selected Assets to Next Move Operation"))
+				]
+			]
+		]
+	];
+	
+	FSlateApplication::Get().AddWindowAsNativeChild(AdvancedMenuWindow.ToSharedRef(), ParentWindow.ToSharedRef()); 
 	return true;
 }
 

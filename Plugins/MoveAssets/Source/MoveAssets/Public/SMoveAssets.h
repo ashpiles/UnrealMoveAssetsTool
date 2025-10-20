@@ -37,11 +37,14 @@ private:
 	// connected to an event from the extension launcher
 	// the event will then spawn this menu and we can then spawn this
 	bool AddAdvancedMenu();
-	bool RemoveAdvancedMenu();
+	bool RemoveAdvancedMenu(); 
+	
 
 	TSharedPtr<STextBlock> SelectedAssetsNumTextBox;
 	TSharedPtr<STextBlock> DestinationPathTextBox;
 	TSharedPtr<SEditableTextBox> NewFolderName;
 	TSharedPtr<SWindow> AdvancedMenuWindow;
 	TArray<FAssetData> CachedSelectedAssets;
+	bool bIsAutoSavingAssets = false;
+	bool bIsAutoRemovingRedirectors = false; 
 };
