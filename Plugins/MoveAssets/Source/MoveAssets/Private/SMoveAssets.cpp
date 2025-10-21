@@ -328,8 +328,11 @@ bool SMoveAssets::AddAdvancedMenu()
 				SNew(SBox)
 				.HeightOverride(60)
 				.WidthOverride(400)
-				[ 
-					SNew(SAssetSearchBox)
+				[
+					SAssignNew(SearchBar, SAssetSearchBox)
+					.OnTextChanged_Lambda([]
+					{
+					})
 				]
 			]
 		]
@@ -357,5 +360,105 @@ bool SMoveAssets::AddAdvancedMenu()
 bool SMoveAssets::RemoveAdvancedMenu()
 {
 	return true;
+}
+
+// Lazy Merge Sort
+// Compare strings by ascii value, dropping all below the highest
+void SMoveAssets::FuzzyFind(const FString* Input, TArray<FString>& Output)
+{
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+	TArray<FString> PathStrings;
+	int BestMatchScore = 0;
+	AssetRegistryModule.Get().GetAllCachedPaths(PathStrings); 
+	
+}
+
+
+// O(n*m) or O(C)
+int SMoveAssets::RecursiveLevenShteinDistance(FString Str1, FString Str2)
+{
+	if (Str1.Len() <= 0)
+		return Str2.Len();
+	if (Str2.Len() <= 0)
+		return Str1.Len();
+
+	FString Str1a = Str1.RightChop(0);
+	FString Str2b = Str2.RightChop(0);
+	int Distance = 0;
+	
+	if (Str1[0] == Str2[0])
+		Distance = RecursiveLevenShteinDistance(Str1a, Str2b);
+	else
+	{ 
+		Distance = 1 + FMath::Min3(
+			RecursiveLevenShteinDistance(Str1a, Str2), // Char inserted
+			RecursiveLevenShteinDistance(Str1, Str2b), // Char deleted
+			RecursiveLevenShteinDistance(Str1, Str2) // Char replaced
+			);
+	}
+
+
+	return Distance;
+}
+
+void SMoveAssets::MergeSortPaths(const FString& Input, TArray<FString>& Paths, int Index, int Range)
+{
+	if (Index >= Range)
+		return;
+	int Middle = (Index + Range) / 2;
+	MergeSortPaths(Input, Paths, Index, Middle);
+	MergeSortPaths(Input, Paths, Middle + 1, Range);
+	
+	MergePaths(Input, Paths, Index, Middle, Range);
+}
+
+void SMoveAssets::MergePaths(const FString& Input, TArray<FString>& Paths, int Index, int Middle, int Range)
+{
+	int LeftSubArrLength = Middle - Index + 1;
+	int RightSubArrLength = Range - Middle;
+	TArray<FString> LeftPaths, RightPaths;
+
+	for (int i = 0; i < LeftSubArrLength; i++)
+		LeftPaths.Add(Paths[i]);
+	for (int j = 0; j < RightSubArrLength; j++)
+		RightPaths.Add(Paths[j]);
+
+	int LeftPathDistance = 0, RightPathDistance = 0, r = 0, l = 0;
+	int k = Index;
+	// no sorting yet just drop any not in threshold then test
+	while (l < LeftSubArrLength && r < RightSubArrLength) 
+	{
+		bool bIsMovingIndex = false;
+		LeftPathDistance = RecursiveLevenShteinDistance(Input, LeftPaths[l]);
+		RightPathDistance = RecursiveLevenShteinDistance(Input, RightPaths[r]);
+		if (LeftPathDistance <= RightPathDistance)
+		{
+			Paths[k] = LeftPaths[l];
+			l++;
+			bIsMovingIndex = true;
+		}
+		else
+		{
+			Paths[k] = RightPaths[r];
+			r++;
+			bIsMovingIndex = true;
+		}
+		if (bIsMovingIndex)
+			k++;
+	}
+
+	while (l < LeftSubArrLength)
+	{
+		Paths[k] = LeftPaths[l];
+		l++;
+		k++;
+	}
+	
+	while (r < RightSubArrLength)
+	{
+		Paths[k] = RightPaths[r];
+		r++;
+		k++;
+	}
 }
 

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 
+class SAssetSearchBox;
 /**
  * 
  */
@@ -37,14 +38,21 @@ private:
 	// connected to an event from the extension launcher
 	// the event will then spawn this menu and we can then spawn this
 	bool AddAdvancedMenu();
-	bool RemoveAdvancedMenu(); 
+	bool RemoveAdvancedMenu();
+
+	void FuzzyFind(const FString* Input, TArray<FString>& Output);
+	int RecursiveLevenShteinDistance(FString Str1, FString Str2);
+	void MergeSortPaths(const FString& Input, TArray<FString>& Paths, int Index, int Range);
+	void MergePaths(const FString& Input, TArray<FString>& Paths, int Index, int Middle, int Range);
 	
 
 	TSharedPtr<STextBlock> SelectedAssetsNumTextBox;
 	TSharedPtr<STextBlock> DestinationPathTextBox;
 	TSharedPtr<SEditableTextBox> NewFolderName;
+	TSharedPtr<SAssetSearchBox> SearchBar; 
 	TSharedPtr<SWindow> AdvancedMenuWindow;
 	TArray<FAssetData> CachedSelectedAssets;
+	
 	bool bIsAutoSavingAssets = false;
 	bool bIsAutoRemovingRedirectors = false; 
 };
