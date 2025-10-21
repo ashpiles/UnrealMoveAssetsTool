@@ -21,8 +21,6 @@ void SMoveAssets::Construct(const FArguments& InArgs)
 {
 	// Initializing important variables
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
-	FString DestinationPathTextBoxString =  ContentBrowserModule.Get().GetCurrentPath().GetVirtualPathString();
-	DestinationPathTextBoxString.RemoveFromStart("/All");
 
 	// To bypass const in move asset operations so that Selected Assets can be updated
 
@@ -50,6 +48,7 @@ void SMoveAssets::Construct(const FArguments& InArgs)
 					.VAlign(VAlign_Center)
 					.HAlign(HAlign_Center)
 					.Text(FText::FromString("Move"))
+					.OnClicked(this, &SMoveAssets::OnMoveToSelectedFolderClicked)
 				]
 			]
 			+ SHorizontalBox::Slot()
@@ -63,6 +62,7 @@ void SMoveAssets::Construct(const FArguments& InArgs)
 					.VAlign(VAlign_Center)
 					.HAlign(HAlign_Center)
 					.Text(FText::FromString("Move & Sort"))
+					.OnClicked(this, &SMoveAssets::OnSortAssetsButtonClicked)
 				]
 			] 
 		]
@@ -76,12 +76,18 @@ void SMoveAssets::Construct(const FArguments& InArgs)
 			.Padding(10)
 			[
 				SNew(SCheckBox)
-				.OnCheckStateChanged_Lambda([this] (ECheckBoxState State)
+				.OnCheckStateChanged_Lambda([this] (ECheckBoxState State) -> void
 				{
 					if (State == ECheckBoxState::Checked)
+					{
+						
 						AddAdvancedMenu(); // trigger spawn event
+					}
 					else
+					{
+						
 						RemoveAdvancedMenu(); // trigger despawn event
+					}
 				})
 			]
 			+ SHorizontalBox::Slot()
@@ -174,63 +180,63 @@ void SMoveAssets::GetAssetDependencies(const FAssetData& AssetData, TArray<FName
 
 }
 
-
-FReply SMoveAssets::OnCreateFolderButtonClicked() const
-{
-	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
-	FString DesiredPath = DestinationPathTextBox->GetText().ToString() + "/NewFolder";
-	// maybe this can pop up a new window to name the folder?
-	DesiredPath.RemoveFromStart(TEXT("/All"));
-	if (MakeFolder(DesiredPath))
-		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Moved " + FString::FromInt(CachedSelectedAssets.Num()) + " assets to " + DesiredPath)) ;
-	else
-		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Failed to create new folder at " + DesiredPath)) ;
-	MoveAssetsTo(CachedSelectedAssets, DesiredPath);
-	UpdateRefrencers(DesiredPath);
-	
-	
-	return FReply::Handled();
-}
-
 FReply SMoveAssets::OnSortAssetsButtonClicked() const
 {
+	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
 	TArray<FAssetData> MovedAssets;
-	FString DestinationPath = DestinationPathTextBox->GetText().ToString();
-	DestinationPath.RemoveFromStart(TEXT("/All"));
+	TArray<FAssetData> SelectedAssets;
+	FString ToPath = SelectDestinationPath();
+	FString FromPath = ToPath;
+	
+	AssetSelectionUtils::GetSelectedAssets(SelectedAssets);
+	SelectedAssets.Append(CachedSelectedAssets);
+	
 	TMap<FName, TArray<FAssetData>> AssetTypes;
 
-	if (CachedSelectedAssets.Num() <= 0)
+	if (MakeFolder(FromPath + "/" + NewFolderName.Get()->GetText().ToString()))
+	{
+		ToPath += "/" + NewFolderName.Get()->GetText().ToString();
+	}
+
+	if (SelectedAssets.Num() <= 0)
 	{ 
 		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Failed to sort assets, cache selected assets before commencing operation")) ;
 		return FReply::Handled();
 	}
 
-	for (const FAssetData& Asset : CachedSelectedAssets )
+	for (const FAssetData& Asset : SelectedAssets )
 	{
 		FName AssetName = Asset.AssetClassPath.GetAssetName();
 		AssetTypes.FindOrAdd(AssetName).Add(Asset);
 	}
 	for (auto Element : AssetTypes )
 	{ 
-		FString UniqueDestinationPath = DestinationPath + "/" + Element.Key.ToString() + "s";
-		MakeFolder(UniqueDestinationPath, true);
-		MovedAssets.Append(MoveAssetsTo(Element.Value, UniqueDestinationPath)); 
-		UpdateRefrencers(DestinationPath);
+		FString UniqueToPath = ToPath + "/" + Element.Key.ToString() + "s";
+		MakeFolder(UniqueToPath, true);
+		MovedAssets.Append(MoveAssetsTo(Element.Value, UniqueToPath)); 
+		UpdateRefrencers(FromPath); 
 	}
 	
 	
-	FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Sorted " + FString::FromInt(CachedSelectedAssets.Num()) + " assets to " + FString::FromInt(AssetTypes.Num()) + " unique folders at " + DestinationPath)) ;
+	FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Sorted " + FString::FromInt(CachedSelectedAssets.Num()) + " assets to " + FString::FromInt(AssetTypes.Num()) + " unique folders at " + SelectDestinationPath())) ;
 
 	return FReply::Handled(); 
 }
 
 FReply SMoveAssets::OnMoveToSelectedFolderClicked() const
 {
-	FString DestinationPath = DestinationPathTextBox->GetText().ToString();
-	DestinationPath.RemoveFromStart(TEXT("/All"));
-	FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Moved " + FString::FromInt(CachedSelectedAssets.Num()) + " assets to " + DestinationPath));
-	MoveAssetsTo(CachedSelectedAssets, DestinationPath);
-	UpdateRefrencers(DestinationPath);
+	TArray<FAssetData> SelectedAssets;
+	AssetSelectionUtils::GetSelectedAssets(SelectedAssets);
+	SelectedAssets.Append(CachedSelectedAssets);
+	FString FromPath = SelectDestinationPath();
+	FString ToPath = SelectDestinationPath() + "/" + NewFolderName.Get()->GetText().ToString();
+	if (MakeFolder(ToPath))
+	{
+		MoveAssetsTo(SelectedAssets, ToPath);
+		UpdateRefrencers(FromPath);
+		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Moved " + FString::FromInt(CachedSelectedAssets.Num()) + " assets to " + SelectDestinationPath()));
+		
+	}
 	
 	return FReply::Handled();
 }
@@ -246,7 +252,7 @@ FReply SMoveAssets::OnCacheSelectedAssets()
 	return FReply::Handled();
 }
  
-FReply SMoveAssets::OnChangedDestinationPath() const
+FReply SMoveAssets::OnCachedDestinationPath()
 {
 	TArray<FString> SelectedPaths;
 	FContentBrowserModule& ContentBrowser = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
@@ -255,7 +261,11 @@ FReply SMoveAssets::OnChangedDestinationPath() const
 		ContentBrowser.Get().GetSelectedPathViewFolders(SelectedPaths);
 
 	if (!SelectedPaths.IsEmpty())
-		DestinationPathTextBox.Get()->SetText( FText::FromString(SelectedPaths.Last())); 
+	{ 
+		CachedDestinationPath = SelectedPaths.Last();
+		// add search box update
+	}
+	// also add simple search functionality
 
 	return FReply::Handled();
 }
@@ -264,11 +274,14 @@ bool SMoveAssets::AddAdvancedMenu()
 {
 	TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(AsShared());
 	SAssignNew(AdvancedMenuWindow, SWindow)
-	.ClientSize(FVector2D(500, 150))
+	.ClientSize(FVector2D(520, 150))
+	.SizingRule(ESizingRule::FixedSize)
 	.Title(FText::FromString("Asset Mover Advanced Menu"))
 	[
 		SNew(SVerticalBox)
 		+ SVerticalBox::Slot()
+		.VAlign(VAlign_Center)
+		.HAlign(HAlign_Left)
 		[
 			SNew(SHorizontalBox) 
 			+ SHorizontalBox::Slot()
@@ -290,8 +303,6 @@ bool SMoveAssets::AddAdvancedMenu()
 			]
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
-			.VAlign(VAlign_Center)
-			.HAlign(HAlign_Left)
 			.Padding(5)
 			[
 				SNew(SCheckBox)
@@ -307,44 +318,69 @@ bool SMoveAssets::AddAdvancedMenu()
 			]
 		]
 		+ SVerticalBox::Slot()
+		.VAlign(VAlign_Center)
+		.HAlign(HAlign_Left)
+		.MaxHeight(200)
 		[
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
 			.Padding(5)
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Center)
 			[
-				SNew(SBox)
-				.HeightOverride(60)
+				SNew(SBox) 
+				.HeightOverride(100)
 				.WidthOverride(200)
 				[ 
 					SNew(SButton)
 					.Text(FText::FromString("Select Destination Path"))
+					.OnClicked_Lambda([this]
+					{
+						OnCachedDestinationPath();
+						return FReply::Handled();
+					})
 				]
 			]
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
 			.Padding(5)
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Center)
 			[
 				SNew(SBox)
-				.HeightOverride(60)
-				.WidthOverride(400)
+				.HeightOverride(20)
+				.WidthOverride(300)
 				[ 
 					SNew(SAssetSearchBox)
+					.OnTextChanged_Raw()
+					.OnTextCommitted_Raw()
+					.OnAssetSearchBoxSuggestionFilter_Raw()
+					.OnAssetSearchBoxSuggestionChosen_Raw()
 				]
 			]
 		]
 		+ SVerticalBox::Slot()
+		.VAlign(VAlign_Center)
+		.HAlign(HAlign_Left)
+		.MaxHeight(200)
 		[
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot()
+			.AutoWidth()
 			.Padding(5)
 			[
 				SNew(SBox)
-				.HeightOverride(60)
+				.HeightOverride(100) 
 				.WidthOverride(200)
 				[ 
 					SNew(SButton)
-					.Text(FText::FromString("Add Selected Assets to Next Move Operation"))
+					.Text(FText::FromString("Add Assets to Next Move"))
+					.OnClicked_Lambda([this]
+					{
+						OnCacheSelectedAssets();
+						return FReply::Handled();
+					})
 				]
 			]
 		]
@@ -357,5 +393,13 @@ bool SMoveAssets::AddAdvancedMenu()
 bool SMoveAssets::RemoveAdvancedMenu()
 {
 	return true;
+}
+
+FString SMoveAssets::SelectDestinationPath() const
+{
+	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+	FString CurrentPath = ContentBrowserModule.Get().GetCurrentPath().GetVirtualPathString();
+	CurrentPath.RemoveFromStart("/All");
+	return CachedDestinationPath.IsEmpty() ? CachedDestinationPath : CurrentPath;
 }
 

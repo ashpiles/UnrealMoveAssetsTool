@@ -28,16 +28,16 @@ protected:
 	void GetAssetDependencies(const FAssetData&, TArray<FName>& OutDependencies) const;
 
 private:
-	FReply OnCreateFolderButtonClicked() const;
 	FReply OnSortAssetsButtonClicked() const;
 	FReply OnMoveToSelectedFolderClicked() const;
 	FReply OnCacheSelectedAssets();
-	FReply OnChangedDestinationPath() const;
+	FReply OnCachedDestinationPath();
 
 	// connected to an event from the extension launcher
 	// the event will then spawn this menu and we can then spawn this
 	bool AddAdvancedMenu();
-	bool RemoveAdvancedMenu(); 
+	bool RemoveAdvancedMenu();
+	FString SelectDestinationPath() const;
 	
 
 	TSharedPtr<STextBlock> SelectedAssetsNumTextBox;
@@ -45,6 +45,7 @@ private:
 	TSharedPtr<SEditableTextBox> NewFolderName;
 	TSharedPtr<SWindow> AdvancedMenuWindow;
 	TArray<FAssetData> CachedSelectedAssets;
+	FString CachedDestinationPath;
 	bool bIsAutoSavingAssets = false;
 	bool bIsAutoRemovingRedirectors = false; 
 };
