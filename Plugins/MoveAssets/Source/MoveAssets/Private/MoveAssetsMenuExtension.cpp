@@ -30,15 +30,15 @@ void FMoveAssetsMenuExtension::MakeWidget()
 {  
 	TSharedPtr<SWindow> MainEditorWindow = FGlobalTabmanager::Get()->GetRootWindow(); 
 	TSharedPtr<SWindow> MoveAssetsWidgetWindow = SNew(SWindow) 
-		.Title(FText::FromString("Move Asset Helper")) 
-		.ClientSize(FVector2D(800, 235)) 
-		.SupportsMaximize(false)
-		   .SupportsMinimize(false)
-		   .FocusWhenFirstShown(false)
-		   .IsInitiallyMaximized(false)
-		[
-			SAssignNew(MoveAssetsWidget, SMoveAssets)
-	    ];
+	.Title(FText::FromString("Move Asset Helper")) 
+	.ClientSize(FVector2D(400, 130)) 
+	.SupportsMaximize(false)
+	.SupportsMinimize(false)
+	.FocusWhenFirstShown(false)
+	.IsInitiallyMaximized(false)
+	[
+		SAssignNew(MoveAssetsWidget, SMoveAssets)
+	];
 	
 	FSlateApplication::Get().AddWindowAsNativeChild(MoveAssetsWidgetWindow.ToSharedRef(), MainEditorWindow.ToSharedRef());
 }
