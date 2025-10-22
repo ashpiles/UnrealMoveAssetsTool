@@ -11,8 +11,15 @@ void SCachedAssetIconState::Construct(FArguments InArgs)
 	SetVisibility(MakeAttributeSP(this, &SCachedAssetIconState::GetVisibility));
 	ChildSlot
 	[
-		SNew(SImage)
-		.Image(FAppStyle::GetBrush("GenericWhiteBox"))
+		SNew(SBorder)
+		.BorderImage(FAppStyle::GetBrush("Symbols.Check"))
+		.BorderBackgroundColor(FLinearColor::Black)
+		.DesiredSizeScale(FVector2D(1.2f,1.2f))
+		[ 
+				SNew(SImage)
+				.Image(FAppStyle::GetBrush("Symbols.Check"))
+				.ColorAndOpacity(FLinearColor(.2f,1.f,.5f,1.f))
+		]
 	];
 }
 

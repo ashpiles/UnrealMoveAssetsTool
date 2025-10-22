@@ -2,8 +2,9 @@
 
 #pragma once
 
-#include "MoveAssets.h"
 #include "CoreMinimal.h"
+
+DECLARE_DELEGATE(FOnMoveOperation)
 
 /**
  * 
@@ -17,7 +18,10 @@ public:
  
 	void Construct(const FArguments& InArgs);
 
-	friend class FMoveAssetsModule;
+	SMoveAssets();
+
+ 
+	friend class FMoveAssetsMenuExtension;
 	
 	
 	
@@ -26,6 +30,7 @@ protected:
 	bool UpdateRefrencers(FString& Path) const;
 	void MoveAssetsTo(const TArray<FAssetData>& SelectedAssets, FString Path) const;
 	void GetAssetDependencies(const FAssetData&, TArray<FName>& OutDependencies) const;
+	
 
 
 private:
@@ -42,11 +47,15 @@ private:
 	TSharedPtr<STextBlock> DestinationPathText;
 	TSharedPtr<STextBlock> CachedAssetsNumText;
 	TSharedPtr<SMenuPanel> AdvancedMenu;
+	TSharedPtr<SButton> CacheDestinationPathButton;
 	FButtonStyle AdvancedMenuButtonStyle;
 	TSet<FAssetData> CachedSelectedAssets;
-	TArray<FDelegateHandle> AssetViewGeneratorHandles;
+	FDelegateHandle AssetViewGeneratorHandle;
+	FOnMoveOperation SuccesfullMoveOperation;
+	FOnMoveOperation FailedMoveOperation;
 	FString CachedDestinationPath;
 	bool bIsAutoSavingAssets = true;
 	bool bIsAutoRemovingRedirectors = true;
+	bool bIsSettingUp = true;
 
 };

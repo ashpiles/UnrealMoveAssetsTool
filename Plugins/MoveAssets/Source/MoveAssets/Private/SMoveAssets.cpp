@@ -4,12 +4,10 @@
 #include "SMoveAssets.h"
 
 
-#include "AssetDefinitionRegistry.h"
 #include "AssetDefinition.h"
 #include "AssetSelection.h"
 #include "AssetToolsModule.h"
 #include "AssetViewUtils.h"
-#include "AssetViewWidgets.h"
 #include "ContentBrowserModule.h"
 #include "FileHelpers.h"
 #include "IAssetTools.h"
@@ -17,20 +15,9 @@
 #include "SCachedAssetIconState.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 
-
-
-
+ 
 void SMoveAssets::Construct(const FArguments& InArgs)
-{ 
-	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
-
-	FAssetViewExtraStateGenerator StateGenerator(
-		FOnGenerateAssetViewExtraStateIndicators::CreateSP(this, &SMoveAssets::GenerateMoveAssetIconState),
-		FOnGenerateAssetViewExtraStateIndicators()
-		);
-	
-	ContentBrowserModule.AddAssetViewExtraStateGenerator(StateGenerator);
-
+{
 	ChildSlot
 	[
 		SNew(SVerticalBox)
@@ -171,7 +158,7 @@ void SMoveAssets::Construct(const FArguments& InArgs)
 							SNew(SButton)
 							.VAlign(VAlign_Center)
 							.HAlign(HAlign_Center)
-							.Text(FText::FromString("Cache Selected Assets"))
+							.Text(FText::FromString("Update Cached Assets"))
 							.OnClicked_Lambda([this]
 							{
 								OnCachedSelectedAssets();
@@ -185,10 +172,11 @@ void SMoveAssets::Construct(const FArguments& InArgs)
 						.BorderBackgroundColor(FSlateColor(FLinearColor(.3f, .3f, .3f, 1.f)))
 						.Padding(2)
 						[ 
-							SNew(SButton)
+							SAssignNew(CacheDestinationPathButton, SButton)
 							.VAlign(VAlign_Center)
 							.HAlign(HAlign_Center)
-							.Text(FText::FromString("Cache Selected Path"))
+							.Text(FText::FromString("Update Cached Destination Path"))
+							.ToolTipText(FText::FromString(CachedDestinationPath))
 							.OnClicked_Lambda([this]
 							{
 								OnCachedDestinationPath();
@@ -203,7 +191,21 @@ void SMoveAssets::Construct(const FArguments& InArgs)
 		
 
 
-} 
+}
+
+SMoveAssets::SMoveAssets()
+{
+	SuccesfullMoveOperation = FOnMoveOperation::CreateLambda([this] ()
+	{
+		CachedSelectedAssets.Empty();
+		CachedDestinationPath.Empty();
+	});
+	
+	FailedMoveOperation = FOnMoveOperation::CreateLambda([] ()
+	{ 
+	
+	});
+}
 
 bool SMoveAssets::MakeFolder(FString NewPath, bool bSkipErrorMessage = false) const
 {
@@ -270,10 +272,7 @@ void SMoveAssets::MoveAssetsTo(const TArray<FAssetData>& SelectedAssets, FString
 			NewSelectedAssets.Add(AssetData); 
 	}
 	AssetViewUtils::MoveAssets(Assets, Path);
-
-	// Remove Check mark Icons
-	for (auto GeneratorHandle : AssetViewGeneratorHandles)
-		ContentBrowserModule.RemoveAssetViewExtraStateGenerator(GeneratorHandle);
+	SuccesfullMoveOperation.ExecuteIfBound();
  }
 
 void SMoveAssets::GetAssetDependencies(const FAssetData& AssetData, TArray<FName>& OutDependencies) const
@@ -305,7 +304,8 @@ FReply SMoveAssets::OnSortAssetsButtonClicked() const
 
 	if (SelectedAssets.Num() <= 0)
 	{ 
-		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Failed to sort assets, cache selected assets before commencing operation")) ;
+		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Failed to sort assets, cache or select assets before commencing operation")) ;
+		FailedMoveOperation.ExecuteIfBound();
 		return FReply::Handled();
 	}
 
@@ -324,6 +324,7 @@ FReply SMoveAssets::OnSortAssetsButtonClicked() const
 	
 	
 	FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Sorted " + FString::FromInt(CachedSelectedAssets.Num()) + " assets to " + FString::FromInt(AssetTypes.Num()) + " unique folders at " + SelectDestinationPath())) ;
+	SuccesfullMoveOperation.ExecuteIfBound();
 
 	return FReply::Handled(); 
 }
@@ -340,8 +341,7 @@ FReply SMoveAssets::OnMoveToSelectedFolderClicked() const
 		MoveAssetsTo(SelectedAssets, ToPath);
 		UpdateRefrencers(FromPath);
 		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Moved " + FString::FromInt(CachedSelectedAssets.Num()) + " assets to " + SelectDestinationPath()));
-		
-	}
+	} 
 	
 	return FReply::Handled();
 }
@@ -349,8 +349,16 @@ FReply SMoveAssets::OnMoveToSelectedFolderClicked() const
 FReply SMoveAssets::OnCachedSelectedAssets()
 {
 	TArray<FAssetData> SelectedAssets;
-	AssetSelectionUtils::GetSelectedAssets(SelectedAssets);
+	TSet<FAssetData> SelectedAssetsSet;
+	
+	AssetSelectionUtils::GetSelectedAssets(SelectedAssets); 
+	SelectedAssetsSet.Append(SelectedAssets); 
+	
+	TSet<FAssetData> Intersection = CachedSelectedAssets.Intersect(SelectedAssetsSet); 
 	CachedSelectedAssets.Append(SelectedAssets);
+	for (const FAssetData& Asset : Intersection)
+		CachedSelectedAssets.Remove(Asset);
+
 
 	return FReply::Handled();
 }
@@ -366,7 +374,11 @@ FReply SMoveAssets::OnCachedDestinationPath()
 	if (!SelectedPaths.IsEmpty())
 	{ 
 		CachedDestinationPath = SelectedPaths.Last();
-	}
+	} 
+
+	CacheDestinationPathButton.Get()->SetToolTipText(FText::FromString(CachedDestinationPath));
+	
+	FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Cached new destination: " + SelectDestinationPath()));
 
 
 	return FReply::Handled();
@@ -392,4 +404,4 @@ bool SMoveAssets::OnAssetSelected(FAssetData InAssetData) const
 {
 	return CachedSelectedAssets.Contains(InAssetData);
 }
-
+ 

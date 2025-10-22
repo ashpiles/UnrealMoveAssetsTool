@@ -13,6 +13,15 @@ FMoveAssetsMenuExtension::FMoveAssetsMenuExtension()
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
 	TArray<FContentBrowserMenuExtender_SelectedAssets>& MenuExtenderDelegates = ContentBrowserModule. GetAllAssetViewContextMenuExtenders();
 	MenuExtenderDelegates.Add( FContentBrowserMenuExtender_SelectedAssets::CreateRaw(this, &FMoveAssetsMenuExtension::MenuExtensionDelegate));
+ 
+	SAssignNew(MoveAssetsWidget, SMoveAssets);
+	
+	FAssetViewExtraStateGenerator StateGenerator(
+		FOnGenerateAssetViewExtraStateIndicators::CreateSP(MoveAssetsWidget.ToSharedRef(), &SMoveAssets::GenerateMoveAssetIconState),
+		FOnGenerateAssetViewExtraStateIndicators()
+		);
+	AssetViewGeneratorHandle = ContentBrowserModule.AddAssetViewExtraStateGenerator(StateGenerator);
+	
 }
 
 TSharedPtr<SMoveAssets> FMoveAssetsMenuExtension::GetWidget()
@@ -41,10 +50,18 @@ void FMoveAssetsMenuExtension::MakeWidget()
 	.SupportsMaximize(false)
 	.SupportsMinimize(false)
 	.FocusWhenFirstShown(false)
-	.IsInitiallyMaximized(false) 
+	.IsInitiallyMaximized(false)
 	[
-		SAssignNew(MoveAssetsWidget, SMoveAssets)
+		MoveAssetsWidget.ToSharedRef()
 	];
+
+	// Clean up our MoveAssetWidget Data on close
+	// Ugly but works
+	MoveAssetsWidgetWindow->SetOnWindowClosed(FOnWindowClosed::CreateLambda([this] (TSharedPtr<SWindow> Window)
+	{
+		MoveAssetsWidget->CachedSelectedAssets.Empty();
+		MoveAssetsWidget->CachedDestinationPath.Empty();
+	}));
 	
 	FSlateApplication::Get().AddWindowAsNativeChild(MoveAssetsWidgetWindow.ToSharedRef(), MainEditorWindow.ToSharedRef());
 }

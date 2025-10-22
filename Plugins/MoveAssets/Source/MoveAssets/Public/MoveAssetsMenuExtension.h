@@ -20,5 +20,6 @@ private:
 	void MakeWidget();
  
 	TSharedRef<FExtender> MenuExtensionDelegate(const TArray<FAssetData>& SelectedAssets);
-	TSharedPtr<SMoveAssets> MoveAssetsWidget;
+	TSharedPtr<SMoveAssets> MoveAssetsWidget; 
+	FDelegateHandle AssetViewGeneratorHandle;
 };
