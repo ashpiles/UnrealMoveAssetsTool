@@ -15,6 +15,11 @@ FMoveAssetsMenuExtension::FMoveAssetsMenuExtension()
 	MenuExtenderDelegates.Add( FContentBrowserMenuExtender_SelectedAssets::CreateRaw(this, &FMoveAssetsMenuExtension::MenuExtensionDelegate));
 }
 
+TSharedPtr<SMoveAssets> FMoveAssetsMenuExtension::GetWidget()
+{
+	return MoveAssetsWidget;
+}
+
 
 void FMoveAssetsMenuExtension::AddWidgetEntries(FMenuBuilder& MenuBuilder)
 {
@@ -36,7 +41,7 @@ void FMoveAssetsMenuExtension::MakeWidget()
 	.SupportsMaximize(false)
 	.SupportsMinimize(false)
 	.FocusWhenFirstShown(false)
-	.IsInitiallyMaximized(false)
+	.IsInitiallyMaximized(false) 
 	[
 		SAssignNew(MoveAssetsWidget, SMoveAssets)
 	];

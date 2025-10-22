@@ -12,6 +12,10 @@ class MOVEASSETS_API FMoveAssetsMenuExtension : public TSharedFromThis<FMoveAsse
 {
 public:
 	FMoveAssetsMenuExtension();
+
+	TSharedPtr<SMoveAssets> GetWidget();
+	
+private:
 	void AddWidgetEntries(FMenuBuilder& MenuBuilder);
 	void MakeWidget();
  

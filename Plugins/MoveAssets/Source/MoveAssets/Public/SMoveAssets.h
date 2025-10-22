@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "MoveAssets.h"
 #include "CoreMinimal.h"
 
 /**
@@ -13,39 +14,39 @@ public:
 	SLATE_BEGIN_ARGS(SMoveAssets)
 	{ }
 	SLATE_END_ARGS()
-	
-	void SetCachedSelectedAssets(const TArray<FAssetData>& SelectedAssets)
-	{
-		CachedSelectedAssets = SelectedAssets;
-	}
-
+ 
 	void Construct(const FArguments& InArgs);
 
+	friend class FMoveAssetsModule;
+	
+	
+	
 protected:
 	bool MakeFolder(FString NewPath, bool bSkipErrorMessasge) const;
 	bool UpdateRefrencers(FString& Path) const;
-	TArray<FAssetData> MoveAssetsTo(const TArray<FAssetData>& SelectedAssets, FString Path) const;
+	void MoveAssetsTo(const TArray<FAssetData>& SelectedAssets, FString Path) const;
 	void GetAssetDependencies(const FAssetData&, TArray<FName>& OutDependencies) const;
+
 
 private:
 	FReply OnSortAssetsButtonClicked() const;
 	FReply OnMoveToSelectedFolderClicked() const;
-	FReply OnCacheSelectedAssets();
-	FReply OnCachedDestinationPath();
-
-	// connected to an event from the extension launcher
-	// the event will then spawn this menu and we can then spawn this
-	bool AddAdvancedMenu();
-	bool RemoveAdvancedMenu();
+	FReply OnCachedSelectedAssets();
+	FReply OnCachedDestinationPath(); 
 	FString SelectDestinationPath() const;
-	
 
-	TSharedPtr<STextBlock> SelectedAssetsNumTextBox;
-	TSharedPtr<STextBlock> DestinationPathTextBox;
+	TSharedRef<SWidget> GenerateMoveAssetIconState(const FAssetData&) const;
+	bool OnAssetSelected(FAssetData InAssetData) const;
+ 
 	TSharedPtr<SEditableTextBox> NewFolderName;
-	TSharedPtr<SWindow> AdvancedMenuWindow;
-	TArray<FAssetData> CachedSelectedAssets;
+	TSharedPtr<STextBlock> DestinationPathText;
+	TSharedPtr<STextBlock> CachedAssetsNumText;
+	TSharedPtr<SMenuPanel> AdvancedMenu;
+	FButtonStyle AdvancedMenuButtonStyle;
+	TSet<FAssetData> CachedSelectedAssets;
+	TArray<FDelegateHandle> AssetViewGeneratorHandles;
 	FString CachedDestinationPath;
-	bool bIsAutoSavingAssets = false;
-	bool bIsAutoRemovingRedirectors = false; 
+	bool bIsAutoSavingAssets = true;
+	bool bIsAutoRemovingRedirectors = true;
+
 };

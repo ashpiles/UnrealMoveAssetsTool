@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "ContentBrowserModule.h"
 #include "MoveAssetsMenuExtension.h"
 #include "Modules/ModuleManager.h"
 
@@ -14,5 +15,6 @@ public:
 	virtual void ShutdownModule() override;
 
 	TSharedPtr<FMoveAssetsMenuExtension> MoveAssetsMenu;
-	
+	TSharedPtr<SMoveAssets> MoveAssetsWidget;
+
 };

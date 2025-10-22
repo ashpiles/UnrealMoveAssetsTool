@@ -28,7 +28,7 @@ public class MoveAssets : ModuleRules
                 "Core",
                 "DeveloperSettings", 
                 "Blutility",
-                "SlateCore"
+                "SlateCore", "ContentBrowser"
 			}
 			);
 			
@@ -48,7 +48,8 @@ public class MoveAssets : ModuleRules
                 "UMGEditor",
                 "UnrealEd",
                 "UMG", 
-                "EditorWidgets", 
+                "EditorWidgets",
+                "AssetDefinition",
 
 			}
 			);
