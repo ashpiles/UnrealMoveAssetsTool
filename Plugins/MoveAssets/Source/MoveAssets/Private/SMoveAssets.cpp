@@ -2,9 +2,6 @@
 
 
 #include "SMoveAssets.h"
-
-
-#include "AssetDefinition.h"
 #include "AssetSelection.h"
 #include "AssetToolsModule.h"
 #include "AssetViewUtils.h"
@@ -14,10 +11,12 @@
 #include "IContentBrowserSingleton.h"
 #include "SCachedAssetIconState.h"
 #include "AssetRegistry/AssetRegistryModule.h"
+#include "Widgets/Layout/SUniformGridPanel.h"
 
- 
+
 void SMoveAssets::Construct(const FArguments& InArgs)
-{
+{ 
+	
 	ChildSlot
 	[
 		SNew(SVerticalBox)
@@ -26,10 +25,12 @@ void SMoveAssets::Construct(const FArguments& InArgs)
 		.VAlign(VAlign_Center)
 		.Padding(30,10)
 		[
-			SAssignNew(NewFolderName, SEditableTextBox)
+			SAssignNew(NewFolderNameTextBox, SEditableTextBox)
 			.HintText(FText::FromString(TEXT("Enter New Folder Name")))
 		]
 		+ SVerticalBox::Slot()
+		.MaxHeight(70)
+		.MinHeight(70)
 		[
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot()
@@ -62,158 +63,157 @@ void SMoveAssets::Construct(const FArguments& InArgs)
 			] 
 		]
 		+ SVerticalBox::Slot()
-		.HAlign(HAlign_Left)
 		.AutoHeight()
+		.VAlign(VAlign_Bottom)
 		[
-			SNew(SBox)
-			.Padding(20,5)
-			.MinDesiredHeight(20)
-			.MinDesiredWidth(30)
+		SNew(SExpandableArea)
+			.AreaTitle(FText::FromString("Advanced Options"))
+			.BodyContent()
 			[
-				
-				SNew(SComboButton)
-				.MenuPlacement(MenuPlacement_BelowAnchor)
-				.CollapseMenuOnParentFocus(false)
-				.ButtonContent()
+				SNew(SGridPanel)
+				.FillColumn(1, .3f)
+				.FillColumn(0, .3f)
+				+ SGridPanel::Slot(0,0)
 				[
-					SNew(STextBlock)
-					.Text(FText::FromString("Advanced Options"))
-				]
-				.MenuContent()
-				[
-					SNew(SVerticalBox)
-					+ SVerticalBox::Slot()
+					SNew(SBorder)
+					.BorderImage(FAppStyle::GetBrush("FilledBorder"))
+					.BorderBackgroundColor(FLinearColor::Gray)
+					.HAlign(HAlign_Left)
+					.VAlign(VAlign_Center)
 					[
-						SNew(SBorder)
-						.BorderBackgroundColor(FSlateColor(FLinearColor(.3f, .3f, .3f, 1.f)))
-						.Padding(2)
+						SNew(SBox)
+						.Padding(5,3)
 						[
-							SNew(SBorder)
-							.BorderImage(FAppStyle::GetBrush("Border"))
-							.BorderBackgroundColor(FSlateColor(FLinearColor::Black))
-							[ 
-								SNew(SHorizontalBox)
-								+ SHorizontalBox::Slot()
-								.AutoWidth()
-								.Padding(5, 0, 0, 0)
-								[
-									SNew(SCheckBox)
-									.IsChecked(ECheckBoxState::Checked)
-									.OnCheckStateChanged_Lambda([this] (ECheckBoxState State) -> void
-									{
-										bIsAutoSavingAssets = State == ECheckBoxState::Checked;
-									})
-								]
-								+ SHorizontalBox::Slot()
-								.AutoWidth()
-								.Padding(5, 0, 5, 0)
-								.VAlign(VAlign_Center)
-								[
-									SNew(STextBlock)
-									.Text(FText::FromString("Auto Save Assets"))
-								] 
-							]
+							SNew(STextBlock)
+							.Text(FText::FromString("Auto Save Assets")) 
 						]
 					]
-					+ SVerticalBox::Slot()
+
+				]
+				+ SGridPanel::Slot(1,0)
+				[
+					SNew(SBorder)
+					.BorderImage(FAppStyle::GetBrush("FilledBorder"))
+					.BorderBackgroundColor(FLinearColor::Gray)
+					.HAlign(HAlign_Left)
+					.VAlign(VAlign_Center)
 					[
-						SNew(SBorder)
-						.BorderBackgroundColor(FSlateColor(FLinearColor(.3f, .3f, .3f, 1.f)))
-						.Padding(2)
-						[ 
-							SNew(SBorder)
-							.BorderImage(FAppStyle::GetBrush("Border"))
-							.BorderBackgroundColor(FSlateColor(FLinearColor::Black))
-							[
-								SNew(SHorizontalBox)
-								+ SHorizontalBox::Slot()
-								.AutoWidth()
-								.Padding(5, 0, 0, 0)
-								[ 
-									SNew(SCheckBox)
-									.IsChecked(ECheckBoxState::Checked)
-									.OnCheckStateChanged_Lambda([this] (ECheckBoxState State) -> void 
-									{
-										bIsAutoRemovingRedirectors = State == ECheckBoxState::Checked;
-									})
-								]
-								+ SHorizontalBox::Slot()
-								.AutoWidth()
-								.Padding(5, 0, 5, 0)
-								.VAlign(VAlign_Center)
-								[
-									SNew(STextBlock)
-									.Text(FText::FromString("Auto Delete Redirectors")) 
-								]
-							] 
+						SNew(SBox)
+						.Padding(5,3)
+						[
+							SNew(SCheckBox)
+							.IsChecked(ECheckBoxState::Checked)
+							.OnCheckStateChanged_Lambda([this] (ECheckBoxState State) -> void
+							{
+								bIsAutoSavingAssets = State == ECheckBoxState::Checked;
+							}) 
 						]
+					]
+
+				] 
+				+ SGridPanel::Slot(0,1)
+				[
+					SNew(SBorder)
+					.BorderImage(FAppStyle::GetBrush("FilledBorder"))
+					.BorderBackgroundColor(FLinearColor::Gray)
+					.HAlign(HAlign_Left)
+					.VAlign(VAlign_Center)
+					[
+						SNew(SBox)
+						.Padding(5,3)
+						[
+							SNew(STextBlock)
+							.Text(FText::FromString("Auto Delete Redirectors")) 
+						]
+					]
+
+				]
+				+ SGridPanel::Slot(1,1)
+				[
+					SNew(SBorder)
+					.BorderImage(FAppStyle::GetBrush("FilledBorder"))
+					.BorderBackgroundColor(FLinearColor::Gray)
+					.HAlign(HAlign_Left)
+					.VAlign(VAlign_Center)
+					[
+						SNew(SBox)
+						.Padding(5,3)
+						[ 
+							SNew(SCheckBox)
+							.IsChecked(ECheckBoxState::Checked)
+							.OnCheckStateChanged_Lambda([this] (ECheckBoxState State) -> void 
+							{
+								bIsAutoRemovingRedirectors = State == ECheckBoxState::Checked;
+							}) 
+						]
+					]
+
+				]
+				+ SGridPanel::Slot(0,2)
+				.ColumnSpan(2) 
+				[
+					SNew(SBox)
+					[
+					SNew(SButton)
+					   .VAlign(VAlign_Center)
+					   .HAlign(HAlign_Center)
+					   .Text(FText::FromString("Update Cached Assets"))
+					   .OnClicked_Lambda([this]
+					   {
+						   OnCachedSelectedAssets();
+						   return FReply::Handled();
+					   }) 
+					] 
+
+				]
+				+ SGridPanel::Slot(0,3)
+				.ColumnSpan(2)
+				[
+					SNew(SBox)
+					[
+						SAssignNew(CacheDestinationPathButton, SButton)
+						.VAlign(VAlign_Center)
+						.HAlign(HAlign_Center)
+						.Text(FText::FromString("Update Cached Destination Path"))
+						.ToolTipText(FText::FromString(CachedDestinationPath))
+						.OnClicked_Lambda([this]
+						{
+							OnCachedDestinationPath();
+							return FReply::Handled();
+						}) 
 						
-					]
-					+ SVerticalBox::Slot()
-					[
-						SNew(SBorder)
-						.BorderBackgroundColor(FSlateColor(FLinearColor(.3f, .3f, .3f, 1.f)))
-						.Padding(2)
-						[ 
-							SNew(SButton)
-							.VAlign(VAlign_Center)
-							.HAlign(HAlign_Center)
-							.Text(FText::FromString("Update Cached Assets"))
-							.OnClicked_Lambda([this]
-							{
-								OnCachedSelectedAssets();
-								return FReply::Handled();
-							})
-						]
-					]
-					+ SVerticalBox::Slot()
-					[
-						SNew(SBorder)
-						.BorderBackgroundColor(FSlateColor(FLinearColor(.3f, .3f, .3f, 1.f)))
-						.Padding(2)
-						[ 
-							SAssignNew(CacheDestinationPathButton, SButton)
-							.VAlign(VAlign_Center)
-							.HAlign(HAlign_Center)
-							.Text(FText::FromString("Update Cached Destination Path"))
-							.ToolTipText(FText::FromString(CachedDestinationPath))
-							.OnClicked_Lambda([this]
-							{
-								OnCachedDestinationPath();
-								return FReply::Handled();
-							})
-						]
-					]
+					] 
 				]
 			]
 		]
 	];
-		
-
 
 }
 
-SMoveAssets::SMoveAssets()
-{
+SMoveAssets::SMoveAssets() :
+	ContentBrowserModule(FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser")),
+	AssetRegistryModule(FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry")),
+	AssetToolsModule(FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools"))
+{  
 	SuccesfullMoveOperation = FOnMoveOperation::CreateLambda([this] ()
 	{
 		CachedSelectedAssets.Empty();
 		CachedDestinationPath.Empty();
 	});
+
 	
-	FailedMoveOperation = FOnMoveOperation::CreateLambda([] ()
-	{ 
-	
+	FailedMoveOperation = FOnMoveOperation::CreateLambda([this] ()
+	{
+		CachedSelectedAssets.Empty();
+		CachedDestinationPath.Empty();
 	});
+	 
 }
 
-bool SMoveAssets::MakeFolder(FString NewPath, bool bSkipErrorMessage = false) const
-{
-	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
-
-	if (!AssetRegistryModule.Get().AddPath(NewPath) && !bSkipErrorMessage)
+bool SMoveAssets::MakeFolder(FString NewPath) const
+{ 
+	if (!AssetRegistryModule.Get().AddPath(NewPath))
 	{ 
-		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Failed to make path at " + NewPath)) ;
 		return false;
 	}
 	
@@ -221,10 +221,7 @@ bool SMoveAssets::MakeFolder(FString NewPath, bool bSkipErrorMessage = false) co
 }
 
 bool SMoveAssets::UpdateRefrencers(FString& Path) const
-{
-	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
-	FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
-	
+{ 
 	IAssetTools& AssetTools = AssetToolsModule.Get();
 	FARFilter Filter;
 	Filter.ClassPaths.Add(UObjectRedirector::StaticClass()->GetClassPathName());
@@ -248,37 +245,42 @@ bool SMoveAssets::UpdateRefrencers(FString& Path) const
 		UE_LOG(LogTemp, Warning, TEXT("UpdateRefrences - no Refrences to update"));
 		return false;
 	}
+	
 	FEditorFileUtils::SaveDirtyPackages(true, true, true);
 	ERedirectFixupMode FixupMode = bIsAutoRemovingRedirectors ? ERedirectFixupMode::DeleteFixedUpRedirectors : ERedirectFixupMode::PromptForDeletingRedirectors;
 	AssetTools.FixupReferencers(Redirectors, bIsAutoSavingAssets, FixupMode);
 	return true;
 }
 
-void SMoveAssets::MoveAssetsTo(const TArray<FAssetData>& SelectedAssets, FString Path) const
+void SMoveAssets::MoveAssetsTo(const TArray<FAssetData>& SelectedAssets, const FString& Path) const
 {
-	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+	if (SelectedAssets.IsEmpty())
+	{
+		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Could not move assets\n\nAssets not selected or cached")) ;
+		return;
+	}
+
+	if (Path.IsEmpty() || !AssetRegistryModule.Get().PathExists(Path))
+	{
+		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Could not move assets\n\nGiven path does not exist")) ;
+		return; 
+	}
+	
 	TArray<UObject*> Assets;
-	TArray<FAssetData> NewSelectedAssets;
  
 	
 	for (const FAssetData& AssetData : SelectedAssets)
 	{ 
 		if (UObject* Asset = AssetData.GetAsset())
-		{
-			Assets.Add(Asset);
-			NewSelectedAssets.Add(FAssetData(Asset, FAssetData::ECreationFlags::None)); 
-		}
-		else
-			NewSelectedAssets.Add(AssetData); 
+			Assets.Add(Asset); 
 	}
+	
 	AssetViewUtils::MoveAssets(Assets, Path);
 	SuccesfullMoveOperation.ExecuteIfBound();
  }
 
 void SMoveAssets::GetAssetDependencies(const FAssetData& AssetData, TArray<FName>& OutDependencies) const
-{
-	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
-
+{ 
 	AssetRegistryModule.Get().GetDependencies(AssetData.PackageName, OutDependencies);
 
 	for (FName& Dependency : OutDependencies)
@@ -289,6 +291,7 @@ void SMoveAssets::GetAssetDependencies(const FAssetData& AssetData, TArray<FName
 FReply SMoveAssets::OnSortAssetsButtonClicked() const
 {
 	TArray<FAssetData> SelectedAssets;
+	FString NewFolderNameString = GetNewFolderName();
 	FString ToPath = SelectDestinationPath();
 	FString FromPath = ToPath;
 	
@@ -297,10 +300,12 @@ FReply SMoveAssets::OnSortAssetsButtonClicked() const
 	
 	TMap<FName, TArray<FAssetData>> AssetTypes;
 
-	if (MakeFolder(FromPath + "/" + NewFolderName.Get()->GetText().ToString()))
+	if (NewFolderNameString.Len() > 0)
 	{
-		ToPath += "/" + NewFolderName.Get()->GetText().ToString();
+		if (MakeFolder(FromPath + "/" + NewFolderNameString))
+			ToPath += "/" + NewFolderNameString; 
 	}
+
 
 	if (SelectedAssets.Num() <= 0)
 	{ 
@@ -317,13 +322,14 @@ FReply SMoveAssets::OnSortAssetsButtonClicked() const
 	for (auto Element : AssetTypes )
 	{ 
 		FString UniqueToPath = ToPath + "/" + Element.Key.ToString() + "s";
-		MakeFolder(UniqueToPath, true);
+		MakeFolder(UniqueToPath);
 		MoveAssetsTo(Element.Value, UniqueToPath); 
 		UpdateRefrencers(FromPath); 
 	}
 	
+
+	FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Sorted " + FString::FromInt(SelectedAssets.Num()) + " assets to " + FString::FromInt(AssetTypes.Num()) + " unique folders at " + SelectDestinationPath())) ;
 	
-	FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Sorted " + FString::FromInt(CachedSelectedAssets.Num()) + " assets to " + FString::FromInt(AssetTypes.Num()) + " unique folders at " + SelectDestinationPath())) ;
 	SuccesfullMoveOperation.ExecuteIfBound();
 
 	return FReply::Handled(); 
@@ -334,14 +340,14 @@ FReply SMoveAssets::OnMoveToSelectedFolderClicked() const
 	TArray<FAssetData> SelectedAssets;
 	AssetSelectionUtils::GetSelectedAssets(SelectedAssets);
 	SelectedAssets.Append(CachedSelectedAssets.Array());
+	FString NewFolderName = GetNewFolderName();
 	FString FromPath = SelectDestinationPath();
-	FString ToPath = SelectDestinationPath() + "/" + NewFolderName.Get()->GetText().ToString();
-	if (MakeFolder(ToPath))
-	{
-		MoveAssetsTo(SelectedAssets, ToPath);
-		UpdateRefrencers(FromPath);
-		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Moved " + FString::FromInt(CachedSelectedAssets.Num()) + " assets to " + SelectDestinationPath()));
-	} 
+	FString ToPath =  NewFolderName.IsEmpty() ? SelectDestinationPath() : SelectDestinationPath() + "/" + NewFolderName;
+	
+	MakeFolder(ToPath);
+	MoveAssetsTo(SelectedAssets, ToPath);
+	UpdateRefrencers(FromPath);
+	FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Moved " + FString::FromInt(SelectedAssets.Num()) + " assets to " + SelectDestinationPath()));
 	
 	return FReply::Handled();
 }
@@ -366,10 +372,9 @@ FReply SMoveAssets::OnCachedSelectedAssets()
 FReply SMoveAssets::OnCachedDestinationPath()
 {
 	TArray<FString> SelectedPaths;
-	FContentBrowserModule& ContentBrowser = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
-	ContentBrowser.Get().GetSelectedFolders(SelectedPaths);
+	ContentBrowserModule.Get().GetSelectedFolders(SelectedPaths);
 	if (SelectedPaths.IsEmpty())
-		ContentBrowser.Get().GetSelectedPathViewFolders(SelectedPaths);
+		ContentBrowserModule.Get().GetSelectedPathViewFolders(SelectedPaths);
 
 	if (!SelectedPaths.IsEmpty())
 	{ 
@@ -387,11 +392,39 @@ FReply SMoveAssets::OnCachedDestinationPath()
 
 FString SMoveAssets::SelectDestinationPath() const
 {
-	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
 	FString CurrentPath = ContentBrowserModule.Get().GetCurrentPath().GetVirtualPathString();
 	CurrentPath.RemoveFromStart("/All");
-	return CachedDestinationPath.IsEmpty() ? CachedDestinationPath : CurrentPath;
+	return CachedDestinationPath.IsEmpty() ? CurrentPath : CachedDestinationPath;
 }
+
+// Gets folder name form input box and sanitizes input
+FString SMoveAssets::GetNewFolderName() const
+{
+	FString NewFileName = NewFolderNameTextBox.Get()->GetText().ToString();
+	if (NewFileName.IsEmpty())
+		return NewFileName;
+	
+	const FRegexPattern HangingSlashPattern(TEXT(R"(^(/+)?(.*?)(/+)?$)")); 
+	FRegexMatcher HangingSlashMatcher(HangingSlashPattern, NewFileName);
+ 
+	if (HangingSlashMatcher.FindNext())
+	{
+		FString Leading = HangingSlashMatcher.GetCaptureGroup(1);
+		FString Trailing = HangingSlashMatcher.GetCaptureGroup(3);
+
+		if (!Leading.IsEmpty())
+			NewFileName.RemoveFromStart(Leading);
+		if (!Trailing.IsEmpty())
+			NewFileName.RemoveFromEnd(Trailing);
+	}
+	
+	while (NewFileName.Contains(TEXT("//")))
+		NewFileName = NewFileName.Replace(TEXT("//"), TEXT("/"));
+	
+
+	return NewFileName;
+}
+
 
 TSharedRef<SWidget> SMoveAssets::GenerateMoveAssetIconState(const FAssetData& AssetData) const
 {
@@ -404,4 +437,4 @@ bool SMoveAssets::OnAssetSelected(FAssetData InAssetData) const
 {
 	return CachedSelectedAssets.Contains(InAssetData);
 }
- 
+

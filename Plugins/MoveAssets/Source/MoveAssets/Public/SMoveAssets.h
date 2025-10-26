@@ -3,7 +3,10 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "AssetToolsModule.h"
 
+class FContentBrowserModule;
+class FAssetRegistryModule;
 DECLARE_DELEGATE(FOnMoveOperation)
 
 /**
@@ -24,31 +27,34 @@ public:
 	friend class FMoveAssetsMenuExtension;
 	
 	
-	
-protected:
-	bool MakeFolder(FString NewPath, bool bSkipErrorMessasge) const;
-	bool UpdateRefrencers(FString& Path) const;
-	void MoveAssetsTo(const TArray<FAssetData>& SelectedAssets, FString Path) const;
-	void GetAssetDependencies(const FAssetData&, TArray<FName>& OutDependencies) const;
-	
-
-
 private:
 	FReply OnSortAssetsButtonClicked() const;
 	FReply OnMoveToSelectedFolderClicked() const;
 	FReply OnCachedSelectedAssets();
 	FReply OnCachedDestinationPath(); 
 	FString SelectDestinationPath() const;
+	FString GetNewFolderName() const;
 
 	TSharedRef<SWidget> GenerateMoveAssetIconState(const FAssetData&) const;
 	bool OnAssetSelected(FAssetData InAssetData) const;
- 
-	TSharedPtr<SEditableTextBox> NewFolderName;
+	
+protected:
+	bool MakeFolder(FString NewPath) const;
+	bool UpdateRefrencers(FString& Path) const;
+	void MoveAssetsTo(const TArray<FAssetData>& SelectedAssets, const FString& Path) const;
+	void GetAssetDependencies(const FAssetData&, TArray<FName>& OutDependencies) const; 
+
+private:
+	FContentBrowserModule& ContentBrowserModule;
+	FAssetRegistryModule& AssetRegistryModule;
+	FAssetToolsModule& AssetToolsModule;
+	
+	TSharedPtr<SEditableTextBox> NewFolderNameTextBox;
 	TSharedPtr<STextBlock> DestinationPathText;
 	TSharedPtr<STextBlock> CachedAssetsNumText;
 	TSharedPtr<SMenuPanel> AdvancedMenu;
 	TSharedPtr<SButton> CacheDestinationPathButton;
-	FButtonStyle AdvancedMenuButtonStyle;
+	
 	TSet<FAssetData> CachedSelectedAssets;
 	FDelegateHandle AssetViewGeneratorHandle;
 	FOnMoveOperation SuccesfullMoveOperation;
@@ -56,6 +62,6 @@ private:
 	FString CachedDestinationPath;
 	bool bIsAutoSavingAssets = true;
 	bool bIsAutoRemovingRedirectors = true;
-	bool bIsSettingUp = true;
+	bool bCreateNewFolder = false;
 
 };

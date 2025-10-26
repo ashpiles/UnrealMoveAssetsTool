@@ -28,7 +28,9 @@ public class MoveAssets : ModuleRules
                 "Core",
                 "DeveloperSettings", 
                 "Blutility",
-                "SlateCore", "ContentBrowser"
+                "SlateCore", 
+                "ContentBrowser",
+                "EditorInteractiveToolsFramework"
 			}
 			);
 			

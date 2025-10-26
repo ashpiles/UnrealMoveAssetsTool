@@ -41,22 +41,20 @@ void FMoveAssetsMenuExtension::AddWidgetEntries(FMenuBuilder& MenuBuilder)
 }
 
 void FMoveAssetsMenuExtension::MakeWidget()
-{  
+{
 	TSharedPtr<SWindow> MainEditorWindow = FGlobalTabmanager::Get()->GetRootWindow(); 
 	TSharedPtr<SWindow> MoveAssetsWidgetWindow = SNew(SWindow) 
-	.Title(FText::FromString("Move Asset Helper")) 
-	.ClientSize(FVector2D(400, 130)) 
-	.SizingRule(ESizingRule::FixedSize)
+	.ClientSize(FVector2D(420, 200)) 
+	.SizingRule(ESizingRule::Autosized)
+	.Title(FText::FromString("Move Asset Helper"))
 	.SupportsMaximize(false)
 	.SupportsMinimize(false)
 	.FocusWhenFirstShown(false)
 	.IsInitiallyMaximized(false)
 	[
 		MoveAssetsWidget.ToSharedRef()
-	];
-
-	// Clean up our MoveAssetWidget Data on close
-	// Ugly but works
+	]; 
+	
 	MoveAssetsWidgetWindow->SetOnWindowClosed(FOnWindowClosed::CreateLambda([this] (TSharedPtr<SWindow> Window)
 	{
 		MoveAssetsWidget->CachedSelectedAssets.Empty();
@@ -78,9 +76,7 @@ TSharedRef<FExtender> FMoveAssetsMenuExtension::MenuExtensionDelegate(const TArr
 		FMenuExtensionDelegate::CreateSP(this, &FMoveAssetsMenuExtension::AddWidgetEntries)
 		);
 	return MenuExtender.ToSharedRef();
-}
-
-
+}  
 
 
 
