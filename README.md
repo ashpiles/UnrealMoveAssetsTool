@@ -1,2 +1,2 @@
-# UnrealMoveAssetsTool
-Moves selected assets to a new folder in the current path of the content browser or an existing folder by fuzzy searching
+# Unreal Asset Rearranger
+Assists with moving assets safely and effeciently so that orgranizing your project is an easy and clean process. 
