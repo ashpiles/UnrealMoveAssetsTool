@@ -9,9 +9,6 @@
 # White-list
 !.gitignore
 
-!Source/
-!Source/DungeonDashEditor/
-!Source/DungeonDashEditor/**
 !Plugins/
 !Plugins/MoveAssets/
 !Plugins/MoveAssets/Source/
