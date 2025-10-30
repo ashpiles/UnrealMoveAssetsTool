@@ -33,8 +33,8 @@ TSharedPtr<SMoveAssets> FMoveAssetsMenuExtension::GetWidget()
 void FMoveAssetsMenuExtension::AddWidgetEntries(FMenuBuilder& MenuBuilder)
 {
 	MenuBuilder.AddMenuEntry(
-		FText::FromString("Move Asset Helper"),
-		FText::FromString("Helper that moves and or sort assets to a new folder at desired path while cleaning up redirectors"),
+		FText::FromString("Asset Rearranger"),
+		FText::FromString("Helper that moves and or sort assets to a new location while cleaning up redirectors"),
 		FSlateIcon(),
 		FUIAction(FExecuteAction::CreateSP(this, &FMoveAssetsMenuExtension::MakeWidget))
 		); 
@@ -46,7 +46,7 @@ void FMoveAssetsMenuExtension::MakeWidget()
 	TSharedPtr<SWindow> MoveAssetsWidgetWindow = SNew(SWindow) 
 	.ClientSize(FVector2D(420, 200)) 
 	.SizingRule(ESizingRule::Autosized)
-	.Title(FText::FromString("Move Asset Helper"))
+	.Title(FText::FromString("Asset Rearranger"))
 	.SupportsMaximize(false)
 	.SupportsMinimize(false)
 	.FocusWhenFirstShown(false)

@@ -85,10 +85,9 @@ void SMoveAssets::Construct(const FArguments& InArgs)
 						.Padding(5,3)
 						[
 							SNew(STextBlock)
-							.Text(FText::FromString("Auto Save Assets")) 
+							.Text(FText::FromString("Save Assets on Move")) 
 						]
-					]
-
+					] 
 				]
 				+ SGridPanel::Slot(1,0)
 				[
@@ -123,7 +122,7 @@ void SMoveAssets::Construct(const FArguments& InArgs)
 						.Padding(5,3)
 						[
 							SNew(STextBlock)
-							.Text(FText::FromString("Auto Delete Redirectors")) 
+							.Text(FText::FromString("Delete Redirectors on Move")) 
 						]
 					]
 
@@ -150,14 +149,14 @@ void SMoveAssets::Construct(const FArguments& InArgs)
 
 				]
 				+ SGridPanel::Slot(0,2)
-				.ColumnSpan(2) 
 				[
 					SNew(SBox)
 					[
-					SNew(SButton)
+						SNew(SButton)
 					   .VAlign(VAlign_Center)
 					   .HAlign(HAlign_Center)
-					   .Text(FText::FromString("Update Cached Assets"))
+					   .Text(FText::FromString("Select Assets"))
+						.ToolTipText(FText::FromString("Add assets to the next move operation")) 
 					   .OnClicked_Lambda([this]
 					   {
 						   OnCachedSelectedAssets();
@@ -166,22 +165,37 @@ void SMoveAssets::Construct(const FArguments& InArgs)
 					] 
 
 				]
+				+ SGridPanel::Slot(1,2)
+				[
+					SNew(SBorder)
+					.BorderImage(FAppStyle::GetBrush("FilledBorder"))
+					.BorderBackgroundColor(FLinearColor::Gray)
+					.HAlign(HAlign_Left)
+					.VAlign(VAlign_Center)
+					[
+						SNew(SBox)
+						.Padding(5,3)
+						.HAlign(HAlign_Left)
+						[
+							SAssignNew(SelectedAssetsNumText, STextBlock)
+							.Text(FText::FromString("Assets Selected: "))
+						] 
+					] 
+				]
 				+ SGridPanel::Slot(0,3)
 				.ColumnSpan(2)
-				[
+				[ 
 					SNew(SBox)
 					[
 						SAssignNew(CacheDestinationPathButton, SButton)
 						.VAlign(VAlign_Center)
 						.HAlign(HAlign_Center)
-						.Text(FText::FromString("Update Cached Destination Path"))
-						.ToolTipText(FText::FromString(CachedDestinationPath))
+						.Text(FText::FromString("Select Path"))
 						.OnClicked_Lambda([this]
 						{
 							OnCachedDestinationPath();
 							return FReply::Handled();
 						}) 
-						
 					] 
 				]
 			]
@@ -199,6 +213,7 @@ SMoveAssets::SMoveAssets() :
 	{
 		CachedSelectedAssets.Empty();
 		CachedDestinationPath.Empty();
+		SelectedAssetsNumText->SetText(FText::FromString("Assets Selected: " + FString::FromInt(CachedSelectedAssets.Num())));
 	});
 
 	
@@ -206,6 +221,7 @@ SMoveAssets::SMoveAssets() :
 	{
 		CachedSelectedAssets.Empty();
 		CachedDestinationPath.Empty();
+		SelectedAssetsNumText->SetText(FText::FromString("Assets Selected: " + FString::FromInt(CachedSelectedAssets.Num()))); 
 	});
 	 
 }
@@ -246,7 +262,7 @@ bool SMoveAssets::UpdateRefrencers(FString& Path) const
 		return false;
 	}
 	
-	FEditorFileUtils::SaveDirtyPackages(true, true, true);
+	FEditorFileUtils::SaveDirtyPackages(!bIsAutoSavingAssets, true, true);
 	ERedirectFixupMode FixupMode = bIsAutoRemovingRedirectors ? ERedirectFixupMode::DeleteFixedUpRedirectors : ERedirectFixupMode::PromptForDeletingRedirectors;
 	AssetTools.FixupReferencers(Redirectors, bIsAutoSavingAssets, FixupMode);
 	return true;
@@ -309,7 +325,7 @@ FReply SMoveAssets::OnSortAssetsButtonClicked() const
 
 	if (SelectedAssets.Num() <= 0)
 	{ 
-		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Failed to sort assets, cache or select assets before commencing operation")) ;
+		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Failed to sort assets, select assets before commencing operation")) ;
 		FailedMoveOperation.ExecuteIfBound();
 		return FReply::Handled();
 	}
@@ -335,19 +351,21 @@ FReply SMoveAssets::OnSortAssetsButtonClicked() const
 	return FReply::Handled(); 
 }
 
+// need to handle case where you try an incorrect move and give an appropriate err msg
 FReply SMoveAssets::OnMoveToSelectedFolderClicked() const
 {
 	TArray<FAssetData> SelectedAssets;
 	AssetSelectionUtils::GetSelectedAssets(SelectedAssets);
 	SelectedAssets.Append(CachedSelectedAssets.Array());
 	FString NewFolderName = GetNewFolderName();
-	FString FromPath = SelectDestinationPath();
-	FString ToPath =  NewFolderName.IsEmpty() ? SelectDestinationPath() : SelectDestinationPath() + "/" + NewFolderName;
-	
-	MakeFolder(ToPath);
+	FString DestinationPath = SelectDestinationPath();
+	FString ToPath =  NewFolderName.IsEmpty() ? DestinationPath : DestinationPath + "/" + NewFolderName;
+
+	if (!NewFolderName.IsEmpty())
+		MakeFolder(ToPath);
 	MoveAssetsTo(SelectedAssets, ToPath);
-	UpdateRefrencers(FromPath);
-	FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Moved " + FString::FromInt(SelectedAssets.Num()) + " assets to " + SelectDestinationPath()));
+	UpdateRefrencers(DestinationPath);
+	FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Moved " + FString::FromInt(SelectedAssets.Num()) + " assets to " + ToPath));
 	
 	return FReply::Handled();
 }
@@ -365,6 +383,7 @@ FReply SMoveAssets::OnCachedSelectedAssets()
 	for (const FAssetData& Asset : Intersection)
 		CachedSelectedAssets.Remove(Asset);
 
+	SelectedAssetsNumText->SetText(FText::FromString("Assets Selected: " + FString::FromInt(CachedSelectedAssets.Num())));
 
 	return FReply::Handled();
 }
@@ -373,18 +392,17 @@ FReply SMoveAssets::OnCachedDestinationPath()
 {
 	TArray<FString> SelectedPaths;
 	ContentBrowserModule.Get().GetSelectedFolders(SelectedPaths);
+	
 	if (SelectedPaths.IsEmpty())
 		ContentBrowserModule.Get().GetSelectedPathViewFolders(SelectedPaths);
 
-	if (!SelectedPaths.IsEmpty())
-	{ 
-		CachedDestinationPath = SelectedPaths.Last();
-	} 
+	FString NewDestinationPath = SelectedPaths.Last(); 
+	NewDestinationPath.RemoveFromStart("/All");
+	CachedDestinationPath = NewDestinationPath; 
 
-	CacheDestinationPathButton.Get()->SetToolTipText(FText::FromString(CachedDestinationPath));
+	CacheDestinationPathButton.Get()->SetToolTipText(FText::FromString("Selected Path: " + CachedDestinationPath));
 	
-	FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Cached new destination: " + SelectDestinationPath()));
-
+	FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Cached new destination: " + SelectDestinationPath())); 
 
 	return FReply::Handled();
 }

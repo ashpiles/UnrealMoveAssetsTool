@@ -51,7 +51,7 @@ private:
 	
 	TSharedPtr<SEditableTextBox> NewFolderNameTextBox;
 	TSharedPtr<STextBlock> DestinationPathText;
-	TSharedPtr<STextBlock> CachedAssetsNumText;
+	TSharedPtr<STextBlock> SelectedAssetsNumText;
 	TSharedPtr<SMenuPanel> AdvancedMenu;
 	TSharedPtr<SButton> CacheDestinationPathButton;
 	
